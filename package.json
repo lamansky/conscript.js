@@ -1,0 +1,54 @@
+{
+  "name": "conscript",
+  "version": "0.0.0",
+  "description": "The JavaScript parser for the Conscript condition-scripting language.",
+  "keywords": [
+    "conscript",
+    "language",
+    "string",
+    "parser",
+    "condition",
+    "test",
+    "eval",
+    "evaluate",
+    "compare",
+    "comparison",
+    "variable",
+    "value",
+    "operator"
+  ],
+  "author": {
+    "name": "Fr. John Lamansky",
+    "url": "lamansky.com"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/lamansky/conscript.js",
+  "repository": "lamansky/conscript.js",
+  "main": "index.js",
+  "engines": {
+    "node": ">=7.0.0"
+  },
+  "dependencies": {
+    "2": "^1.0.2",
+    "case-insensitive": "^1.0.0",
+    "equals": "^1.0.5",
+    "is-object": "^1.0.1",
+    "isit": "^1.1.0",
+    "m-o": "^2.2.0",
+    "parser-factory": "0.0.0",
+    "remove-prefix": "^2.0.0"
+  },
+  "devDependencies": {
+    "eslint-config-lamansky": "^1.0.0",
+    "mocha": "^5.2.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "eslintConfig": {
+    "extends": "lamansky",
+    "env": {
+      "mocha": true
+    }
+  }
+}
