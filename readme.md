@@ -52,11 +52,11 @@ Converts the condition script into a function. This returned function accepts on
 
 #### Parameters
 
-* Optional: Object argument:
+1. `vars` (function, object, or Map)
+    * If `vars` is a function, it is called whenever Conscript comes across an identifier, and is passed two arguments: the identifier name, and a `notAVar` symbol to be returned if the identifier is not a variable.
+    * If `vars` is an object or Map, its keys are considered the variables to which the values are mapped.
+2. Optional: Object argument:
     * `defaultLeft` (any): A value to be used as the left operand for operations that omit a left operand.
-    * `vars` (function, object, or Map)
-        * If `vars` is a function, it is called whenever Conscript comes across an identifier, and is passed two arguments: the identifier name, and a `notAVar` symbol to be returned if the identifier is not a variable.
-        * If `vars` is an object or Map, its keys are considered the variables to which the values are mapped.
 
 #### Return Value
 
@@ -209,6 +209,8 @@ To the right side of the type operators is a string representing a type check an
 | `&` | And |
 | <code>&#124;</code> | Or |
 
+Note that this differs from JavaScript, which uses double ampersand and pipe characters.
+
 ### Prefix Operator
 
 | Operator | Meaning | Example |
@@ -227,7 +229,7 @@ conscript('(x ?: 123) = 123')({x: false}) // true
 If you set the `defaultLeft` option, the left sides of operations can be omitted:
 
 ```javascript
-conscript('>2 & <4 & *2=6', {defaultLeft: 3})() // true
+conscript('>2 & <4 & *2=6')({}, {defaultLeft: 3}) // true
 ```
 
 The only operator that cannot be used in this way is `-` (subtraction). For example, it would be ambiguous whether `-1` is supposed to represent the number negative one or is supposed to be a subtraction from the default left operand. If you need to subtract from the default left operand, prefix your expression with a plus sign (e.g. `+-1`), since adding a negative number accomplishes the same thing as does subtraction.
@@ -235,6 +237,14 @@ The only operator that cannot be used in this way is `-` (subtraction). For exam
 If you are performing equality comparison (`=`), you can even omit the operator altogether:
 
 ```javascript
-conscript('"a"|"b"', {defaultLeft: 'a'})() // true
-conscript('"a"|"b"', {defaultLeft: 'X'})() // false
+conscript('"a"|"b"')({}, {defaultLeft: 'a'}) // true
+conscript('"a"|"b"')({}, {defaultLeft: 'X'}) // false
 ```
+
+## Version Migration Guide
+
+Here are backward-incompatible changes you need to know about.
+
+### 0.0.0 ⇒ 0.1.0
+
+* In version 0.0.0, the return value function signature was `({vars, defaultLeft})`. In version 0.1.0, the signature is `(vars, {defaultLeft})`. If you are using `conscript('test')({vars})`, you will need to change this to `conscript('code')(vars)`. If you are using `conscript('test')({vars, defaultLeft: 123})`, you will need to change this to `conscript('test')(vars, {defaultLeft: 123})`.

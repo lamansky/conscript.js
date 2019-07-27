@@ -74,9 +74,7 @@ describe('conscript()', function () {
 
   for (const statement of trueStatements) {
     it(`should evaluate as true: \`${statement}\``, function () {
-      const context = {
-        vars: {var: 123, obj: {'a b': () => x => x, c: 3, d: new Map([['key', 'value']])}},
-      }
+      const context = {var: 123, obj: {'a b': () => x => x, c: 3, d: new Map([['key', 'value']])}, bool: false}
       assert.strictEqual(conscript(statement)(context), true)
     })
   }
@@ -113,7 +111,7 @@ describe('conscript()', function () {
   ]
 
   const funcVars = {
-    vars: {sum (a, b) { return a + b }},
+    sum (a, b) { return a + b },
   }
 
   for (const statement of funcStatements) {
@@ -123,15 +121,15 @@ describe('conscript()', function () {
   }
 
   it('should support nested function call', function () {
-    assert.strictEqual(conscript('f(2)(3)=5', {unknownsAre: 'errors'})({vars: {f (x) { return y => x + y }}}), true)
+    assert.strictEqual(conscript('f(2)(3)=5', {unknownsAre: 'errors'})({f (x) { return y => x + y }}), true)
   })
 
   it('should support dot notation', function () {
-    assert.strictEqual(conscript('a.b=1')({vars: {a: {b: 1}}}), true)
+    assert.strictEqual(conscript('a.b=1')({a: {b: 1}}), true)
   })
 
   it('should support dot notation for keys with spaces', function () {
-    assert.strictEqual(conscript('a.{b c}=1')({vars: {a: {'b c': 1}}}), true)
+    assert.strictEqual(conscript('a.{b c}=1')({a: {'b c': 1}}), true)
   })
 
   it('should ignore operators in quotes', function () {
@@ -157,12 +155,12 @@ describe('conscript()', function () {
   })
 
   it('should support `defaultLeft` argument', function () {
-    assert.strictEqual(conscript('!"object"&("number"|"string")')({defaultLeft: typeof 'test'}), true)
-    assert.strictEqual(conscript('"string"&!"object"')({defaultLeft: typeof {}}), false)
-    assert.strictEqual(conscript('!string&object&is string&is not int')({defaultLeft: typeof {}}), true)
-    assert.strictEqual(conscript('>2 & +1=4 & -  1 = 2')({defaultLeft: 3}), true)
-    assert.strictEqual(conscript('>2 & +1=4 & -  1 = 2')({defaultLeft: 3}), true)
-    assert.strictEqual(conscript('.key="value"')({defaultLeft: {key: 'value'}}), true)
-    assert.strictEqual(conscript('(?:2)=2')({defaultLeft: false}), true)
+    assert.strictEqual(conscript('!"object"&("number"|"string")')({}, {defaultLeft: typeof 'test'}), true)
+    assert.strictEqual(conscript('"string"&!"object"')({}, {defaultLeft: typeof {}}), false)
+    assert.strictEqual(conscript('!string&object&is string&is not int')({}, {defaultLeft: typeof {}}), true)
+    assert.strictEqual(conscript('>2 & +1=4 & -  1 = 2')({}, {defaultLeft: 3}), true)
+    assert.strictEqual(conscript('>2 & +1=4 & -  1 = 2')({}, {defaultLeft: 3}), true)
+    assert.strictEqual(conscript('.key="value"')({}, {defaultLeft: {key: 'value'}}), true)
+    assert.strictEqual(conscript('(?:2)=2')({}, {defaultLeft: false}), true)
   })
 })

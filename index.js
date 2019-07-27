@@ -97,7 +97,7 @@ function accessProp (obj, prop, maybe) {
   return null
 }
 
-function getVar ({vars} = {}, varName) {
+function getVar ([vars], varName) {
   if (typeof vars === 'function') {
     const value = nullify(vars(varName, notAVar))
     if (value !== notAVar) return value
@@ -111,13 +111,18 @@ function nullify (x) {
   return typeof x === 'undefined' ? null : x
 }
 
-module.exports = require('parser-factory')('expression', {
+module.exports = require('parser-factory')('start', {
+  start ({call}) {
+    const f = call('expression')
+    return (...context) => f(context)
+  },
+
   expression ({consume, is, sub, shift, until, untilEnd}, p, {inTernary} = {}) {
     const a2t = until('?', {ignore}).trim()
     if (!consume('?')) return sub('expression2', a2t, {inTernary})
     const a2 = sub('expression2', a2t, {inTernary: true})
-    const a = (context = {}) => {
-      const {defaultLeft} = context
+    const a = context => {
+      const {defaultLeft} = context[1] || {}
       let value
       if (a2) value = a2(context)
       return (u(value) && !u(defaultLeft)) ? defaultLeft : value
@@ -138,8 +143,8 @@ module.exports = require('parser-factory')('expression', {
 
   expression3 ({call}, p, {inTernary} = {}) {
     const cb = call('operator', {operators: compOps, apply: applyComparisonOperator, next: 'expression4'})
-    return (context = {}) => {
-      const {defaultLeft} = context
+    return context => {
+      const {defaultLeft} = context[1] || {}
       const value = cb(context)
       return (inTernary || u(defaultLeft) || typeof value === 'boolean') ? value : value === defaultLeft
     }
@@ -158,8 +163,8 @@ module.exports = require('parser-factory')('expression', {
     let initialIs = is('is ', '!is ')
     let leftChunk
     if (!initialIs) leftChunk = chunk()
-    let left = (context = {}) => {
-      const {defaultLeft} = context
+    let left = context => {
+      const {defaultLeft} = context[1] || {}
       if (u(leftChunk) && !u(defaultLeft)) return defaultLeft
       if (leftChunk) return leftChunk(context)
     }
@@ -181,8 +186,8 @@ module.exports = require('parser-factory')('expression', {
       if (consume('(')) return bracket('expression', '(', ')', {ignore})
       else if (consume('!')) {
         const cb = call('value')
-        return (context = {}) => {
-          const {defaultLeft} = context
+        return context => {
+          const {defaultLeft} = context[1] || {}
           const value = cb(context)
           return (u(defaultLeft) || typeof value === 'boolean') ? !value : value !== defaultLeft
         }
@@ -225,10 +230,10 @@ module.exports = require('parser-factory')('expression', {
   },
 
   valueAccess ({bracket, call, char, consume}, {userArgs: [{safe, safeNav = safe, safeCall = safe} = {}]}, {identifier} = {}) {
-    let cb = identifier ? (context = {}) => {
+    let cb = identifier ? context => {
       const val = getVar(context, identifier)
       return val === notAVar ? null : val
-    } : ({defaultLeft} = {}) => {
+    } : ([, {defaultLeft} = {}]) => {
       if (u(defaultLeft)) throw new SyntaxError('Property access chains can only begin with a dot (.) if defaultLeft is specified')
       return defaultLeft
     }
