@@ -13,7 +13,7 @@ const u = x => typeof x === 'undefined'
 
 const boolOps = ['&', '|']
 const absCompOps = ['<', '<=', '=', '>=', '>', '<>', '~=', '^=', '^~=', '$=', '$~=', '*=', '*~=']
-const compOps = [' is ', ' is not ', ' !is ', ...absCompOps, ...absCompOps.map(s => '!' + s)]
+const compOps = [' is ', ' is not ', ' !is ', ' in ', ' ~in ', ' not in ', ' !in ', ' !~in ', ' not ~in ', ...absCompOps, ...absCompOps.map(s => '!' + s)]
 const mathOps = ['+', '-', '*', '/', '%', '^']
 
 const alphanumeric = /[a-zA-Z0-9]/
@@ -40,6 +40,10 @@ function applyAbsoluteComparisonOperator (left, op, right) {
   switch (op) {
     case ' is ': return context => isit(right(context), left(context))
     case ' !is ': case ' is not ': return context => !isit(right(context), left(context))
+    case ' in ': return context => applyInclusionOperator(left(context), right(context), false)
+    case ' !in ': case ' not in ': return context => !applyInclusionOperator(left(context), right(context), false)
+    case ' ~in ': return context => applyInclusionOperator(left(context), right(context), true)
+    case ' !~in ': case ' not ~in ': return context => !applyInclusionOperator(left(context), right(context), true)
     case '<': return context => left(context) < right(context)
     case '<=': return context => left(context) <= right(context)
     case '=': return context => equals(left(context), right(context))
@@ -51,16 +55,8 @@ function applyAbsoluteComparisonOperator (left, op, right) {
     case '^~=': return context => toString(left(context)).toLowerCase().startsWith(toString(right(context)).toLowerCase())
     case '$=': return context => toString(left(context)).endsWith(toString(right(context)))
     case '$~=': return context => toString(left(context)).toLowerCase().endsWith(toString(right(context)).toLowerCase())
-    case '*=': return context => {
-      const leftValue = left(context)
-      return Array.isArray(leftValue) ? leftValue.includes(right(context))
-        : toString(leftValue).includes(toString(right(context)))
-    }
-    case '*~=': return context => {
-      const leftValue = left(context)
-      return Array.isArray(leftValue) ? caseInsensitive(leftValue).includes(right(context))
-        : toString(leftValue).toLowerCase().includes(toString(right(context)).toLowerCase())
-    }
+    case '*=': return context => applyInclusionOperator(right(context), left(context), false)
+    case '*~=': return context => applyInclusionOperator(right(context), left(context), true)
   }
   throw new SyntaxError('Unhandled operator ' + op)
 }
@@ -75,6 +71,15 @@ function applyMathOperator (left, op, right) {
     case '^': return context => left(context) ** right(context)
   }
   throw new SyntaxError('Unhandled operator ' + op)
+}
+
+function applyInclusionOperator (needle, haystack, ci) {
+  if (!Array.isArray(haystack)) {
+    haystack = toString(haystack)
+    needle = toString(needle)
+  }
+  if (ci) haystack = caseInsensitive(haystack)
+  return haystack.includes(needle)
 }
 
 function callFunction (identifier, func, args, maybe) {

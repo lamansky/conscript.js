@@ -70,6 +70,10 @@ describe('conscript()', function () {
     '(2 ? 3 ? 4 : 5 : 6) = 4',
     '(false ? 1 ? 2 : 3 : 4) = 4',
     '(true?!true?2:3:4) = 3',
+    '"test" in "testing"',
+    '"test" in ["test", "example"]',
+    '"test" !in "example"',
+    '"test" ~in "Test"',
   ]
 
   for (const statement of trueStatements) {
@@ -92,6 +96,7 @@ describe('conscript()', function () {
     'TRUE = false',
     '"123" is number',
     'true ? false : true',
+    '"test" in "Test"',
   ]
 
   for (const statement of falseStatements) {

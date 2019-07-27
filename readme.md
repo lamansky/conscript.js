@@ -154,13 +154,9 @@ conscript('obj.{number one}=1')(vars) // true
 
 ### Comparison Operators
 
-All comparisons of equality or inequality are strict, except for the case-insensitive operators.
-
-Operators that specifically work on strings (such as the “starts with” / “ends with” operators) will result in both operands being casted to strings.
-
 | Operator | Meaning | Example |
 | -------- | ------- | ------- |
-| `=` | Equals | `1 = 1`<br>`"a" = "a"` |
+| `=` | Strictly equals | `1 = 1`<br>`"a" = "a"` |
 | `~=` | Case-insensitively equals | `"Abc" ~= "abc"` |
 | `>` | Greater than | `2 > 1` |
 | `>=` | Greater than or equal to | `1 >= 1` |
@@ -168,6 +164,13 @@ Operators that specifically work on strings (such as the “starts with” / “
 | `<=` | Less than or equal to | `2 <= 3` |
 | `<>` | Not equal to | `100 <> 200`<br>`"a" <> "b"` |
 | `!=` | Not equal to | `100 != 200`<br>`"a" != "b"` |
+
+#### Starts/Ends With
+
+The use of these operators will cast both operands to strings.
+
+| Operator | Meaning | Example |
+| -------- | ------- | ------- |
 | `^=` | String starts with | `"test" ^= "t"` |
 | `^~=` | String case-insensitively starts with | `"Test" ^~= "t"` |
 | `!^=` | String does not start with | `"test" !^= "T"` |
@@ -176,12 +179,23 @@ Operators that specifically work on strings (such as the “starts with” / “
 | `$~=` | String case-insensitively ends with | `"Test" $~= "t"` |
 | `!$=` | String does not end with | `"test" !$= "T"` |
 | `!$~=` | String does not case-insensitively end with | `"test" !$~= "x"` |
+
+#### Inclusion
+
+| Operator | Meaning | Example |
+| -------- | ------- | ------- |
 | `*=` | String or array contains | `"test" *= "e"`<br>`[1,2,3] *= 1` |
 | `*~=` | String or array case-insensitively contains |`"test" *~= "E"`<br>`["Hello", "world"] *~= "hello"` |
 | `!*=` | String or array does not contain | `"test" !*= "T"`<br>`[1,2,3] !*= 4` |
 | `!*~=` | String or array does not case-insensitively contain | `"test" !*~= "x"` |
+| `in` | Contained in string or array | `"e" in "test"`<br>`1 in [1,2,3]` |
+| `~in` | Case-insensitively contained in string or array |`"E" ~in "test"`<br>`"hello" ~in ["Hello", "world"]` |
+| `!in` | Not contained in string or array | `"T" !in "test"` |
+| `not in` | Not contained in string or array | `4 not in [1,2,3]` |
+| `!~in` | Not case-insensitively contained in string or array | `"x" !~in "test"` |
+| `not ~in` | Not case-insensitively contained in string or array | `"x" not ~in "test"` |
 
-### Type Operators
+#### Type
 
 | Operator | Meaning | Example |
 | -------- | ------- | ------- |
