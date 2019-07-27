@@ -279,4 +279,4 @@ Here are backward-incompatible changes you need to know about.
 
 ### 0.0.0 ⇒ 0.1.0
 
-* In version 0.0.0, the return value function signature was `({vars, defaultLeft})`. In version 0.1.0, the signature is `(vars, {defaultLeft})`. If you are using `conscript('test')({vars})`, you will need to change this to `conscript('code')(vars)`. If you are using `conscript('test')({vars, defaultLeft: 123})`, you will need to change this to `conscript('test')(vars, {defaultLeft: 123})`.
+* In version 0.0.0, the return value function signature was `({vars, defaultLeft})`. In version 0.1.0, the signature is `(vars, {defaultLeft})`. If you are using `conscript('test')({vars})`, you will need to change this to `conscript('test')(vars)`. If you are using `conscript('test')({vars, defaultLeft: 123})`, you will need to change this to `conscript('test')(vars, {defaultLeft: 123})`.
