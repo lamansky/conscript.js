@@ -13,14 +13,26 @@ const u = x => typeof x === 'undefined'
 
 const boolOps = ['&', '|']
 const absCompOps = ['<', '<=', '=', '>=', '>', '<>', '~=', '^=', '^~=', '$=', '$~=', '*=', '*~=']
-const compOps = [' is ', ' is not ', ' !is ', ' in ', ' ~in ', ' not in ', ' !in ', ' !~in ', ' not ~in ', ...absCompOps, ...absCompOps.map(s => '!' + s)]
+const compOps = [' is ', ' is not ', ' !is ', ' in ', ' ~in ', ' not in ', ' !in ', ' !~in ', ' not ~in ', ' matches ', ' !matches ', ...absCompOps, ...absCompOps.map(s => '!' + s)]
 const mathOps = ['+', '-', '*', '/', '%', '^']
+const regexDelimiter = '@'
 
 const alphanumeric = /[a-zA-Z0-9]/
 const digits = '0123456789'
 const escape = '\\'
-const ignore = [['(', ')'], ['[', ']'], ['{', '}'], ['"', '"', {escape}], ["'", "'", {escape}]]
+const ignore = [['(', ')'], ['[', ']'], ['{', '}'], ['"', '"', {escape}], ["'", "'", {escape}], ['@', '@', {escape}]]
 const number = /^-?\.?[0-9]/
+
+function getApplyRegexOperator (left, right, shouldMatch, safe) {
+  return context => {
+    const l = left(context)
+    const r = right(context)
+    if (isit.a(RegExp, l) && isit.string(r)) return !l.test(r) === !shouldMatch
+    if (isit.a(RegExp, r) && isit.string(l)) return !r.test(l) === !shouldMatch
+    if (safe) return false
+    throw new TypeError('To use the `matches` operator, one operand must be a regular expression and the other must be a string')
+  }
+}
 
 function applyBooleanOperator (left, op, right) {
   switch (op) {
@@ -30,13 +42,13 @@ function applyBooleanOperator (left, op, right) {
   throw new SyntaxError('Unhandled operator ' + op)
 }
 
-function applyComparisonOperator (left, op, right) {
+function applyComparisonOperator (left, op, right, safe) {
   const [absOp, neg] = removePrefix(op, '!')
-  const r = applyAbsoluteComparisonOperator(left, absOp, right)
+  const r = applyAbsoluteComparisonOperator(left, absOp, right, safe)
   return neg ? context => !r(context) : r
 }
 
-function applyAbsoluteComparisonOperator (left, op, right) {
+function applyAbsoluteComparisonOperator (left, op, right, safe) {
   switch (op) {
     case ' is ': return context => isit(right(context), left(context))
     case ' !is ': case ' is not ': return context => !isit(right(context), left(context))
@@ -44,6 +56,8 @@ function applyAbsoluteComparisonOperator (left, op, right) {
     case ' !in ': case ' not in ': return context => !applyInclusionOperator(left(context), right(context), false)
     case ' ~in ': return context => applyInclusionOperator(left(context), right(context), true)
     case ' !~in ': case ' not ~in ': return context => !applyInclusionOperator(left(context), right(context), true)
+    case ' matches ': return getApplyRegexOperator(left, right, true, safe)
+    case ' !matches ': return getApplyRegexOperator(left, right, false, safe)
     case '<': return context => left(context) < right(context)
     case '<=': return context => left(context) <= right(context)
     case '=': return context => equals(left(context), right(context))
@@ -159,7 +173,7 @@ module.exports = require('parser-factory')('start', {
     return call('operator', {operators: mathOps, apply: applyMathOperator, next: 'value'})
   },
 
-  operator ({char, consume, is, sub, until}, p, {operators, apply, next, t}) {
+  operator ({char, consume, is, sub, until}, {userArgs: [{safe} = {}]}, {operators, apply, next, t}) {
     const chunk = op => {
       const value = (is('- ') ? '' : consume('-')) + until(...operators, {ignore}).trim()
       if (op && !value) throw new SyntaxError('Expected to find an expression to the right of the ' + op + ' operator.')
@@ -175,7 +189,7 @@ module.exports = require('parser-factory')('start', {
     }
     while (char()) {
       const op = initialIs ? ' ' + consume('is not ', 'is ', '!is ') : consume(...operators)
-      if (op) left = apply(left, op, chunk(op)); else break
+      if (op) left = apply(left, op, chunk(op), safe); else break
       initialIs = false
     }
     return left
@@ -198,6 +212,7 @@ module.exports = require('parser-factory')('start', {
         }
       } else if (consume('$')) return call('valueAccess', {identifier: call('identifier')})
       else if (consume('[')) return bracket('list', '[', ']', {ignore})
+      else if (consume(regexDelimiter)) return call('regex')
       else if (is('"', "'")) return call('string')
       else if (is('.')) return call('valueAccess')
       else if (consume('true', {ci: true})) return () => true
@@ -266,7 +281,14 @@ module.exports = require('parser-factory')('start', {
     return context => arr.map(item => item(context))
   },
 
-  string ({consume, is, until}) {
+  regex ({consume, consumeWhile, char, until}) {
+    const regex = until(regexDelimiter, {escape})
+    consume(regexDelimiter)
+    const flags = consumeWhile('gimsuy')
+    return () => new RegExp(regex, flags)
+  },
+
+  string ({consume, until}) {
     const quote = consume('"', "'")
     if (!quote) throw new Error('string subroutine called without quote in queue')
     const value = until(quote, {escape})

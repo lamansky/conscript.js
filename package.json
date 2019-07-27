@@ -15,7 +15,10 @@
     "comparison",
     "variable",
     "value",
-    "operator"
+    "operator",
+    "regex",
+    "regexp",
+    "regular expressions"
   ],
   "author": {
     "name": "Fr. John Lamansky",

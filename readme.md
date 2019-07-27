@@ -152,6 +152,17 @@ const vars = {
 conscript('obj.{number one}=1')(vars) // true
 ```
 
+### Regular Expressions
+
+Regular expressions are surrounded on either side by `@`. Flags (such as `i`) can go after the final `@`. Regular expressions are used in conjunction with the `matches` operator. The regex can go on the left and the string on the right, or vice versa.
+
+```javascript
+conscript('@^ex@ matches "Example"')() // false
+conscript('@^ex@ !matches "Example"')() // true
+conscript('@^ex@i matches "Example"')() // true
+conscript('"Example" matches @^ex@i')() // true
+```
+
 ### Comparison Operators
 
 | Operator | Meaning | Example |
@@ -194,6 +205,13 @@ The use of these operators will cast both operands to strings.
 | `not in` | Not contained in string or array | `4 not in [1,2,3]` |
 | `!~in` | Not case-insensitively contained in string or array | `"x" !~in "test"` |
 | `not ~in` | Not case-insensitively contained in string or array | `"x" not ~in "test"` |
+
+#### Regex Matching
+
+| Operator | Meaning | Example |
+| -------- | ------- | ------- |
+| `matches` | The regex pattern matches the string, or vice versa | `@^t@ matches "test"`<br>`"test" matches @^t@`<br>`"test" matches @^T@i` |
+| `!matches` | The regex pattern does not match the string, and vice versa | `@^T@ !matches "test"`<br>`"test" !matches @^T@` |
 
 #### Type
 
