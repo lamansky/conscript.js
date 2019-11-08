@@ -39,7 +39,7 @@ function applyBooleanOperator (left, op, right) {
     case '&': return context => left(context) && right(context)
     case '|': return context => left(context) || right(context)
   }
-  throw new SyntaxError('Unhandled operator ' + op)
+  throw new SyntaxError('Unhandled boolean operator `' + op + '`')
 }
 
 function applyComparisonOperator (left, op, right, safe) {
@@ -72,7 +72,7 @@ function applyAbsoluteComparisonOperator (left, op, right, safe) {
     case '*=': return context => applyInclusionOperator(right(context), left(context), false)
     case '*~=': return context => applyInclusionOperator(right(context), left(context), true)
   }
-  throw new SyntaxError('Unhandled operator ' + op)
+  throw new SyntaxError('Unhandled comparison operator `' + op + '`')
 }
 
 function applyMathOperator (left, op, right) {
@@ -84,7 +84,7 @@ function applyMathOperator (left, op, right) {
     case '%': return context => left(context) % right(context)
     case '^': return context => left(context) ** right(context)
   }
-  throw new SyntaxError('Unhandled operator ' + op)
+  throw new SyntaxError('Unhandled math operator `' + op + '`')
 }
 
 function applyInclusionOperator (needle, haystack, ci) {
@@ -179,18 +179,19 @@ module.exports = require('parser-factory')('start', {
       if (op && !value) throw new SyntaxError('Expected to find an expression to the right of the ' + op + ' operator.')
       return sub(next, value, t)
     }
-    let initialIs = is('is ', '!is ')
+    const wordOps = operators.reduce((w, op) => { if (op.startsWith(' ')) w.push(op.substr(1)); return w }, [])
+    let initialWord = is(...wordOps)
     let leftChunk
-    if (!initialIs) leftChunk = chunk()
+    if (!initialWord) leftChunk = chunk()
     let left = context => {
       const {defaultLeft} = context[1] || {}
       if (u(leftChunk) && !u(defaultLeft)) return defaultLeft
       if (leftChunk) return leftChunk(context)
     }
     while (char()) {
-      const op = initialIs ? ' ' + consume('is not ', 'is ', '!is ') : consume(...operators)
+      const op = initialWord ? ' ' + consume(...wordOps) : consume(...operators)
       if (op) left = apply(left, op, chunk(op), safe); else break
-      initialIs = false
+      initialWord = false
     }
     return left
   },

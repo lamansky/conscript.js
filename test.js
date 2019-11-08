@@ -174,5 +174,7 @@ describe('conscript()', function () {
     assert.strictEqual(conscript('>2 & +1=4 & -  1 = 2')({}, {defaultLeft: 3}), true)
     assert.strictEqual(conscript('.key="value"')({}, {defaultLeft: {key: 'value'}}), true)
     assert.strictEqual(conscript('(?:2)=2')({}, {defaultLeft: false}), true)
+    assert.strictEqual(conscript('is string')({}, {defaultLeft: 'test'}), true)
+    assert.strictEqual(conscript('matches @^t@')({}, {defaultLeft: 'test'}), true)
   })
 })
