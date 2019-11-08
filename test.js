@@ -17,6 +17,11 @@ describe('conscript()', function () {
     '[1, 2, 3] *= 1',
     '[1, 2, "3"] *~= 3',
     '[1, 2, "3"] !*= 3',
+    '[1, 2, 3].1 = 2',
+    '[1, 2, 3].(1 + 1) = 3',
+    '[1, 2, 3].length = 3',
+    '[1, 2, 3].count = 3',
+    '[5, 6, 7].last = 7',
     '["Hello, world"] *= "Hello, world"',
     '["Hello","world"] *~= "HELLO"',
     '[0] = [0]',
@@ -64,6 +69,9 @@ describe('conscript()', function () {
     'obj.d.key = value',
     'obj.c=3&obj.d.hi=null',
     '(var=123 ? 1 : 2) = 1',
+    '$("v" + "ar") = 123',
+    '$(v + ar) = 123',
+    '$(x)="z"',
     '(var ?: null) = var',
     '(null ?: var) = var',
     'first word != first',
@@ -85,7 +93,7 @@ describe('conscript()', function () {
 
   for (const statement of trueStatements) {
     it(`should evaluate as true: \`${statement}\``, function () {
-      const context = {var: 123, obj: {'a b': () => x => x, c: 3, d: new Map([['key', 'value']])}, bool: false}
+      const context = {var: 123, obj: {'a b': () => x => x, c: 3, d: new Map([['key', 'value']])}, bool: false, x: 'y', y: 'z'}
       assert.strictEqual(conscript(statement)(context), true)
     })
   }
@@ -164,6 +172,12 @@ describe('conscript()', function () {
     assert.strictEqual(conscript('unknown="unknown"')(), true)
     assert.strictEqual(conscript('unknown=null', {unknownsAre: 'null'})(), true)
     assert.throws(() => { conscript('unknown=1', {unknownsAre: 'errors'})() })
+  })
+
+  it('should throw an error accessing an invalid array property', function () {
+    assert.doesNotThrow(() => { conscript('arr.0')({arr: [1]}) })
+    assert.throws(() => { conscript('arr.pop is function')({arr: [1]}) })
+    assert.throws(() => { conscript('[1].pop is function')() })
   })
 
   it('should support `defaultLeft` argument', function () {

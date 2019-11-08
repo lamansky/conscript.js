@@ -96,7 +96,13 @@ Normally, variable names must be alphanumeric. If you need support for more char
 conscript('${hello world!}=123')({'hello world!': 123}) // true
 ```
 
-You can also implement dynamic variables by passing a function instead of a dictionary object:
+If you need "variable variables," use the `$(expression)` construction:
+
+```javascript
+conscript('$(x)="z"')({x: 'y', y: 'z'}) // true
+```
+
+You can also implement determined-at-runtime variable names by passing a function instead of a dictionary object:
 
 ```javascript
 conscript('variable="variable"')(varName => varName) // true
@@ -150,6 +156,15 @@ const vars = {
   obj: {'number one': 1},
 }
 conscript('obj.{number one}=1')(vars) // true
+```
+
+If you need dynamic property access, use the `.(expression)` construction:
+
+```javascript
+const vars = {
+  arr: [0, 10, 20],
+}
+conscript('arr.(1 + 1) = 20')(vars) // true
 ```
 
 ### Regular Expressions

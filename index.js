@@ -6,6 +6,7 @@ const isObject = require('is-object')
 const isit = require('isit')
 const {has, get} = require('m-o')
 const removePrefix = require('remove-prefix')
+const toNumber = require('2/number')
 const toString = require('2/string')
 
 const notAVar = Symbol('notAVar')
@@ -106,9 +107,24 @@ function callFunction (identifier, func, args, maybe) {
   return null
 }
 
-function accessProp (obj, prop, maybe) {
+function accessArrayProp (arr, prop, maybe) {
+  arr = arr()
+  if (Array.isArray(arr)) {
+    switch (prop) {
+      case 'last': return arr[arr.length - 1]
+      case 'length': case 'count': return arr.length
+      default: return arr[toNumber(prop, {elseThrow: 'Array index `' + prop + '` is not a number'})]
+    }
+  } else if (!maybe) {
+    throw new TypeError('Cannot retrieve property `' + prop + '` from a non-array')
+  }
+  return null
+}
+
+function accessObjectProp (obj, prop, maybe) {
   obj = obj()
   if (isObject(obj)) {
+    if (Array.isArray(obj)) return accessArrayProp(() => obj, prop, maybe)
     return has(obj, prop) ? get(obj, prop) : null
   } else if (!maybe) {
     throw new TypeError('Cannot retrieve property `' + prop + '` from a non-object')
@@ -212,7 +228,7 @@ module.exports = require('parser-factory')('start', {
           return (u(defaultLeft) || typeof value === 'boolean') ? !value : value !== defaultLeft
         }
       } else if (consume('$')) return call('valueAccess', {identifier: call('identifier')})
-      else if (consume('[')) return bracket('list', '[', ']', {ignore})
+      else if (consume('[')) return call('valueAccess', {accessProp: accessArrayProp, value: bracket('list', '[', ']', {ignore})})
       else if (consume(regexDelimiter)) return call('regex')
       else if (is('"', "'")) return call('string')
       else if (is('.')) return call('valueAccess')
@@ -224,13 +240,21 @@ module.exports = require('parser-factory')('start', {
     }
   },
 
-  identifier ({consume, consumeWhile, throughEnd}) {
-    return consume('{') ? throughEnd('{', '}', {escape}) : consumeWhile(alphanumeric)
+  identifier ({bracket, consume, consumeWhile, throughEnd}) {
+    if (consume('(')) return bracket('expression', '(', ')', {ignore})
+
+    if (consume('{')) {
+      const literal = throughEnd('{', '}', {escape})
+      return () => literal
+    }
+
+    const literal = consumeWhile(alphanumeric)
+    return () => literal
   },
 
   fallback ({call, char, until}, {userArgs: [{unknownsAre} = {}]}) {
     const identifier = until('(', '.').trim()
-    if (char()) return call('valueAccess', {identifier})
+    if (char()) return call('valueAccess', {identifier: () => identifier})
     if (/[^a-zA-Z0-9 ]/.test(identifier)) throw new SyntaxError('Unrecognized syntax: `' + identifier + '`')
     return context => {
       const varValue = getVar(context, identifier)
@@ -250,14 +274,14 @@ module.exports = require('parser-factory')('start', {
     }
   },
 
-  valueAccess ({bracket, call, char, consume}, {userArgs: [{safe, safeNav = safe, safeCall = safe} = {}]}, {identifier} = {}) {
-    let cb = identifier ? context => {
-      const val = getVar(context, identifier)
+  valueAccess ({bracket, call, char, consume}, {userArgs: [{safe, safeNav = safe, safeCall = safe} = {}]}, {accessProp = accessObjectProp, identifier, value} = {}) {
+    let cb = value || (identifier ? context => {
+      const val = getVar(context, identifier(context))
       return val === notAVar ? null : val
     } : ([, {defaultLeft} = {}]) => {
       if (u(defaultLeft)) throw new SyntaxError('Property access chains can only begin with a dot (.) if defaultLeft is specified')
       return defaultLeft
-    }
+    })
     while (char()) {
       const last = cb
       if (consume('(')) {
@@ -265,7 +289,7 @@ module.exports = require('parser-factory')('start', {
         cb = context => callFunction(identifier, () => last(context), args(context), safeCall)
       } else if (consume('.')) {
         const prop = call('identifier')
-        cb = context => accessProp(() => last(context), prop, safeNav)
+        cb = context => accessProp(() => last(context), prop(context), safeNav)
       } else {
         break
       }
