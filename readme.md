@@ -39,6 +39,7 @@ The first function is intended to be called at require-time, e.g. `require('cons
 ### Parameter of the First Function
 
 1. Optional: Object argument: Global options that will apply to all subsequent calls. Possible options:
+    * `allowRegexLiterals` (bool): Whether to permit regular expression literals in condition scripts. Defaults to `false`.
     * `safeCall` (bool): If set to `true`, calling a non-function will fail silently and generate `null`. If set to `false`, an error will be thrown. Defaults to `false`.
     * `safeNav` (bool): If set to `true`, accessing a property of a non-object will fail silently and generate `null`. If set to `false`, an error will be thrown. Defaults to `false`.
     * `safe` (bool): A shortcut for setting both `safeCall` and `safeNav` simultaneously.
@@ -190,8 +191,10 @@ conscript('arr.(1 + 1) = 20')(vars) // true
 
 Regular expressions are surrounded on either side by `@`. Flags (such as `i`) can go after the final `@`. Regular expressions are used in conjunction with the `matches` operator. The regex can go on the left and the string on the right, or vice versa.
 
+The use of regular expression literals (e.g. `@regex@`) requires the `allowRegexLiterals` option to be set to `true`.
+
 ```javascript
-const conscript = require('conscript')()
+const conscript = require('conscript')({allowRegexLiterals: true})
 conscript('@^ex@ matches "Example"')() // false
 conscript('@^ex@ !matches "Example"')() // true
 conscript('@^ex@i matches "Example"')() // true
@@ -242,6 +245,8 @@ The use of these operators will cast both operands to strings.
 | `not ~in` | Not case-insensitively contained in string or array | `"x" not ~in "test"` |
 
 #### Regex Matching
+
+Theoretically, these operators can be used even when `allowRegexLiterals` is off, if you provide a regular expression as a variable.
 
 | Operator | Meaning | Example |
 | -------- | ------- | ------- |
@@ -325,6 +330,7 @@ Here are backward-incompatible changes you need to know about.
 ### 0.1.0 ⇒ Master
 
 * A complete Conscript call now involves 3 function calls instead of 2. The first function call is an opportunity to specify global settings, e.g. `require('conscript')(globalSettings)`. The only modification necessary to migrate your existing code is to change `require('conscript')` to `require('conscript')()`.
+* Regular expression literals are now disabled by default, to protect against [ReDoS](https://en.wikipedia.org/wiki/ReDoS) attacks when dealing with user input. Enabling them requires the `allowRegexLiterals` option to be set to `true`.
 
 ### 0.0.0 ⇒ 0.1.0
 

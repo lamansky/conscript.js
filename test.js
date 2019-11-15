@@ -98,7 +98,7 @@ describe('conscript()', function () {
   for (const statement of trueStatements) {
     it(`should evaluate as true: \`${statement}\``, function () {
       const vars = {var: 123, obj: {'a b': () => x => x, c: 3, d: new Map([['key', 'value']])}, bool: false, x: 'y', y: 'z'}
-      assert.strictEqual(conscript()(statement)(vars), true)
+      assert.strictEqual(conscript({allowRegexLiterals: true})(statement)(vars), true)
     })
   }
 
@@ -194,7 +194,7 @@ describe('conscript()', function () {
     assert.strictEqual(conscript()('.key="value"')({}, {defaultLeft: {key: 'value'}}), true)
     assert.strictEqual(conscript()('(?:2)=2')({}, {defaultLeft: false}), true)
     assert.strictEqual(conscript()('is string')({}, {defaultLeft: 'test'}), true)
-    assert.strictEqual(conscript()('matches @^t@')({}, {defaultLeft: 'test'}), true)
+    assert.strictEqual(conscript({allowRegexLiterals: true})('matches @^t@')({}, {defaultLeft: 'test'}), true)
     assert.strictEqual(conscript()('then "ing" = "testing"')({}, {defaultLeft: 'test'}), true)
   })
 })

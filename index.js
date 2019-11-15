@@ -224,7 +224,7 @@ const conscript = require('parser-factory')('start', {
     consumeWhile(' \r\n\t')
   },
 
-  value ({bracket, call, char, consume, is, until}) {
+  value ({bracket, call, char, consume, is, until}, {userArgs: [{allowRegexLiterals} = {}]}) {
     while (char()) {
       call('whitespace')
       if (consume('(')) return bracket('expression', '(', ')', {ignore})
@@ -237,7 +237,7 @@ const conscript = require('parser-factory')('start', {
         }
       } else if (consume('$')) return call('valueAccess', {identifier: call('identifier')})
       else if (consume('[')) return call('valueAccess', {accessProp: accessArrayProp, value: bracket('list', '[', ']', {ignore})})
-      else if (consume(regexDelimiter)) return call('regex')
+      else if (allowRegexLiterals && consume(regexDelimiter)) return call('regex')
       else if (is('"', "'")) return call('string')
       else if (is('.')) return call('valueAccess')
       else if (consume('true', {ci: true})) return () => true
