@@ -24,7 +24,7 @@ if (test(vars)) {
 
 ## Installation
 
-Requires [Node.js](https://nodejs.org/) 7.0.0 or above.
+Requires [Node.js](https://nodejs.org/) 8.3.0 or above.
 
 ```bash
 npm i conscript

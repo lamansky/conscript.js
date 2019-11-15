@@ -7,7 +7,7 @@ const isit = require('isit')
 const {has, get} = require('m-o')
 const removePrefix = require('remove-prefix')
 const toNumber = require('2/number')
-const toString = require('2/string')
+const toStr = require('2/string')
 
 const notAVar = Symbol('notAVar')
 const u = x => typeof x === 'undefined'
@@ -20,14 +20,14 @@ const regexDelimiter = '@'
 
 const alphanumeric = /[a-zA-Z0-9]/
 const digits = '0123456789'
-const escape = '\\'
-const ignore = [['(', ')'], ['[', ']'], ['{', '}'], ['"', '"', {escape}], ["'", "'", {escape}], ['@', '@', {escape}]]
+const esc = '\\'
+const ignore = [['(', ')'], ['[', ']'], ['{', '}'], ['"', '"', {esc}], ["'", "'", {esc}], ['@', '@', {esc}]]
 const number = /^-?\.?[0-9]/
 
 function getApplyRegexOperator (left, right, shouldMatch, safe) {
-  return context => {
-    const l = left(context)
-    const r = right(context)
+  return args => {
+    const l = left(args)
+    const r = right(args)
     if (isit.a(RegExp, l) && isit.string(r)) return !l.test(r) === !shouldMatch
     if (isit.a(RegExp, r) && isit.string(l)) return !r.test(l) === !shouldMatch
     if (safe) return false
@@ -37,8 +37,8 @@ function getApplyRegexOperator (left, right, shouldMatch, safe) {
 
 function applyBooleanOperator (left, op, right) {
   switch (op) {
-    case '&': return context => left(context) && right(context)
-    case '|': return context => left(context) || right(context)
+    case '&': return args => left(args) && right(args)
+    case '|': return args => left(args) || right(args)
   }
   throw new SyntaxError('Unhandled boolean operator `' + op + '`')
 }
@@ -46,61 +46,61 @@ function applyBooleanOperator (left, op, right) {
 function applyComparisonOperator (left, op, right, safe) {
   const [absOp, neg] = removePrefix(op, '!')
   const r = applyAbsoluteComparisonOperator(left, absOp, right, safe)
-  return neg ? context => !r(context) : r
+  return neg ? args => !r(args) : r
 }
 
 function applyAbsoluteComparisonOperator (left, op, right, safe) {
   switch (op) {
-    case ' is ': return context => isit(right(context), left(context))
-    case ' !is ': case ' is not ': return context => !isit(right(context), left(context))
-    case ' in ': return context => applyInclusionOperator(left(context), right(context), false)
-    case ' !in ': case ' not in ': return context => !applyInclusionOperator(left(context), right(context), false)
-    case ' ~in ': return context => applyInclusionOperator(left(context), right(context), true)
-    case ' !~in ': case ' not ~in ': return context => !applyInclusionOperator(left(context), right(context), true)
+    case ' is ': return args => isit(right(args), left(args))
+    case ' !is ': case ' is not ': return args => !isit(right(args), left(args))
+    case ' in ': return args => applyInclusionOperator(left(args), right(args), false)
+    case ' !in ': case ' not in ': return args => !applyInclusionOperator(left(args), right(args), false)
+    case ' ~in ': return args => applyInclusionOperator(left(args), right(args), true)
+    case ' !~in ': case ' not ~in ': return args => !applyInclusionOperator(left(args), right(args), true)
     case ' matches ': return getApplyRegexOperator(left, right, true, safe)
     case ' !matches ': return getApplyRegexOperator(left, right, false, safe)
-    case '<': return context => left(context) < right(context)
-    case '<=': return context => left(context) <= right(context)
-    case '=': return context => equals(left(context), right(context))
-    case '>=': return context => left(context) >= right(context)
-    case '>': return context => left(context) > right(context)
-    case '<>': return context => left(context) !== right(context)
-    case '~=': return context => toString(left(context)).toLowerCase() === toString(right(context)).toLowerCase()
-    case '^=': return context => toString(left(context)).startsWith(toString(right(context)))
-    case '^~=': return context => toString(left(context)).toLowerCase().startsWith(toString(right(context)).toLowerCase())
-    case '$=': return context => toString(left(context)).endsWith(toString(right(context)))
-    case '$~=': return context => toString(left(context)).toLowerCase().endsWith(toString(right(context)).toLowerCase())
-    case '*=': return context => applyInclusionOperator(right(context), left(context), false)
-    case '*~=': return context => applyInclusionOperator(right(context), left(context), true)
+    case '<': return args => left(args) < right(args)
+    case '<=': return args => left(args) <= right(args)
+    case '=': return args => equals(left(args), right(args))
+    case '>=': return args => left(args) >= right(args)
+    case '>': return args => left(args) > right(args)
+    case '<>': return args => left(args) !== right(args)
+    case '~=': return args => toStr(left(args)).toLowerCase() === toStr(right(args)).toLowerCase()
+    case '^=': return args => toStr(left(args)).startsWith(toStr(right(args)))
+    case '^~=': return args => toStr(left(args)).toLowerCase().startsWith(toStr(right(args)).toLowerCase())
+    case '$=': return args => toStr(left(args)).endsWith(toStr(right(args)))
+    case '$~=': return args => toStr(left(args)).toLowerCase().endsWith(toStr(right(args)).toLowerCase())
+    case '*=': return args => applyInclusionOperator(right(args), left(args), false)
+    case '*~=': return args => applyInclusionOperator(right(args), left(args), true)
   }
   throw new SyntaxError('Unhandled comparison operator `' + op + '`')
 }
 
 function applyMathOperator (left, op, right) {
   switch (op) {
-    case '+': return context => left(context) + right(context)
-    case '-': return context => left(context) - right(context)
-    case '*': return context => left(context) * right(context)
-    case '/': return context => left(context) / right(context)
-    case '%': return context => left(context) % right(context)
-    case '^': return context => left(context) ** right(context)
+    case '+': return args => left(args) + right(args)
+    case '-': return args => left(args) - right(args)
+    case '*': return args => left(args) * right(args)
+    case '/': return args => left(args) / right(args)
+    case '%': return args => left(args) % right(args)
+    case '^': return args => left(args) ** right(args)
   }
   throw new SyntaxError('Unhandled math operator `' + op + '`')
 }
 
 function applyInclusionOperator (needle, haystack, ci) {
   if (!Array.isArray(haystack)) {
-    haystack = toString(haystack)
-    needle = toString(needle)
+    haystack = toStr(haystack)
+    needle = toStr(needle)
   }
   if (ci) haystack = caseInsensitive(haystack)
   return haystack.includes(needle)
 }
 
-function callFunction (identifier, func, args, maybe) {
+function callFunction (identifier, func, funcArgs, maybe) {
   func = func()
   if (typeof func === 'function') {
-    return nullify(func(...args))
+    return nullify(func(...funcArgs))
   } else if (!maybe) {
     throw new TypeError('`' + identifier + '` is not a function')
   }
@@ -149,27 +149,27 @@ function nullify (x) {
 module.exports = require('parser-factory')('start', {
   start ({call}) {
     const f = call('expression')
-    return (...context) => f(context)
+    return (...args) => f(args)
   },
 
   expression ({consume, is, sub, shift, until, untilEnd}, p, {inTernary} = {}) {
     const a2t = until('?', {ignore}).trim()
     if (!consume('?')) return sub('expression2', a2t, {inTernary})
     const a2 = sub('expression2', a2t, {inTernary: true})
-    const a = context => {
-      const {defaultLeft} = context[1] || {}
+    const a = args => {
+      const {defaultLeft} = args[1] || {}
       let value
-      if (a2) value = a2(context)
+      if (a2) value = a2(args)
       return (u(value) && !u(defaultLeft)) ? defaultLeft : value
     }
     const b2 = sub('expression', untilEnd('?', ':', {ignore}).trim(), {inTernary: true})
-    const b = context => {
-      const value = b2(context)
-      return u(value) ? a(context) : value
+    const b = args => {
+      const value = b2(args)
+      return u(value) ? a(args) : value
     }
     if (!consume(':')) throw new SyntaxError('Missing second half of ternary expression')
     const c = sub('expression', shift(Infinity), {inTernary: true})
-    return context => a(context) ? b(context) : c(context)
+    return args => a(args) ? b(args) : c(args)
   },
 
   expression2 ({call}, p, t) {
@@ -178,9 +178,9 @@ module.exports = require('parser-factory')('start', {
 
   expression3 ({call}, p, {inTernary} = {}) {
     const cb = call('operator', {operators: compOps, apply: applyComparisonOperator, next: 'expression4'})
-    return context => {
-      const {defaultLeft} = context[1] || {}
-      const value = cb(context)
+    return args => {
+      const {defaultLeft} = args[1] || {}
+      const value = cb(args)
       return (inTernary || u(defaultLeft) || typeof value === 'boolean') ? value : value === defaultLeft
     }
   },
@@ -199,10 +199,10 @@ module.exports = require('parser-factory')('start', {
     let initialWord = is(...wordOps)
     let leftChunk
     if (!initialWord) leftChunk = chunk()
-    let left = context => {
-      const {defaultLeft} = context[1] || {}
+    let left = args => {
+      const {defaultLeft} = args[1] || {}
       if (u(leftChunk) && !u(defaultLeft)) return defaultLeft
-      if (leftChunk) return leftChunk(context)
+      if (leftChunk) return leftChunk(args)
     }
     while (char()) {
       const op = initialWord ? ' ' + consume(...wordOps) : consume(...operators)
@@ -222,9 +222,9 @@ module.exports = require('parser-factory')('start', {
       if (consume('(')) return bracket('expression', '(', ')', {ignore})
       else if (consume('!')) {
         const cb = call('value')
-        return context => {
-          const {defaultLeft} = context[1] || {}
-          const value = cb(context)
+        return args => {
+          const {defaultLeft} = args[1] || {}
+          const value = cb(args)
           return (u(defaultLeft) || typeof value === 'boolean') ? !value : value !== defaultLeft
         }
       } else if (consume('$')) return call('valueAccess', {identifier: call('identifier')})
@@ -236,7 +236,7 @@ module.exports = require('parser-factory')('start', {
       else if (consume('false', {ci: true})) return () => false
       else if (consume('null', {ci: true})) return () => null
       else if (number.test(char(3))) return call('number')
-      else return call('fallback')
+      return call('fallback')
     }
   },
 
@@ -244,7 +244,7 @@ module.exports = require('parser-factory')('start', {
     if (consume('(')) return bracket('expression', '(', ')', {ignore})
 
     if (consume('{')) {
-      const literal = throughEnd('{', '}', {escape})
+      const literal = throughEnd('{', '}', {esc})
       return () => literal
     }
 
@@ -256,8 +256,8 @@ module.exports = require('parser-factory')('start', {
     const identifier = until('(', '.').trim()
     if (char()) return call('valueAccess', {identifier: () => identifier})
     if (/[^a-zA-Z0-9 ]/.test(identifier)) throw new SyntaxError('Unrecognized syntax: `' + identifier + '`')
-    return context => {
-      const varValue = getVar(context, identifier)
+    return args => {
+      const varValue = getVar(args, identifier)
       if (varValue !== notAVar) return varValue
       switch (unknownsAre) {
         default:
@@ -275,8 +275,8 @@ module.exports = require('parser-factory')('start', {
   },
 
   valueAccess ({bracket, call, char, consume}, {userArgs: [{safe, safeNav = safe, safeCall = safe} = {}]}, {accessProp = accessObjectProp, identifier, value} = {}) {
-    let cb = value || (identifier ? context => {
-      const val = getVar(context, identifier(context))
+    let cb = value || (identifier ? args => {
+      const val = getVar(args, identifier(args))
       return val === notAVar ? null : val
     } : ([, {defaultLeft} = {}]) => {
       if (u(defaultLeft)) throw new SyntaxError('Property access chains can only begin with a dot (.) if defaultLeft is specified')
@@ -285,11 +285,11 @@ module.exports = require('parser-factory')('start', {
     while (char()) {
       const last = cb
       if (consume('(')) {
-        const args = bracket('list', '(', ')')
-        cb = context => callFunction(identifier, () => last(context), args(context), safeCall)
+        const funcArgs = bracket('list', '(', ')')
+        cb = args => callFunction(identifier, () => last(args), funcArgs(args), safeCall)
       } else if (consume('.')) {
         const prop = call('identifier')
-        cb = context => accessProp(() => last(context), prop(context), safeNav)
+        cb = args => accessProp(() => last(args), prop(args), safeNav)
       } else {
         break
       }
@@ -303,11 +303,11 @@ module.exports = require('parser-factory')('start', {
       arr.push(sub('expression', until(',', {ignore})))
       consume(',')
     }
-    return context => arr.map(item => item(context))
+    return args => arr.map(item => item(args))
   },
 
   regex ({consume, consumeWhile, char, until}) {
-    const regex = until(regexDelimiter, {escape})
+    const regex = until(regexDelimiter, {esc})
     consume(regexDelimiter)
     const flags = consumeWhile('gimsuy')
     return () => new RegExp(regex, flags)
@@ -316,7 +316,7 @@ module.exports = require('parser-factory')('start', {
   string ({consume, until}) {
     const quote = consume('"', "'")
     if (!quote) throw new Error('string subroutine called without quote in queue')
-    const value = until(quote, {escape})
+    const value = until(quote, {esc})
     consume(quote)
     return () => value
   },

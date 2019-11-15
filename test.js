@@ -93,8 +93,8 @@ describe('conscript()', function () {
 
   for (const statement of trueStatements) {
     it(`should evaluate as true: \`${statement}\``, function () {
-      const context = {var: 123, obj: {'a b': () => x => x, c: 3, d: new Map([['key', 'value']])}, bool: false, x: 'y', y: 'z'}
-      assert.strictEqual(conscript(statement)(context), true)
+      const vars = {var: 123, obj: {'a b': () => x => x, c: 3, d: new Map([['key', 'value']])}, bool: false, x: 'y', y: 'z'}
+      assert.strictEqual(conscript(statement)(vars), true)
     })
   }
 
