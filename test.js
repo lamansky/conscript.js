@@ -98,7 +98,7 @@ describe('conscript()', function () {
   for (const statement of trueStatements) {
     it(`should evaluate as true: \`${statement}\``, function () {
       const vars = {var: 123, obj: {'a b': () => x => x, c: 3, d: new Map([['key', 'value']])}, bool: false, x: 'y', y: 'z'}
-      assert.strictEqual(conscript(statement)(vars), true)
+      assert.strictEqual(conscript()(statement)(vars), true)
     })
   }
 
@@ -120,7 +120,7 @@ describe('conscript()', function () {
 
   for (const statement of falseStatements) {
     it(`should evaluate as false: \`${statement}\``, function () {
-      assert.strictEqual(conscript(statement)(), false)
+      assert.strictEqual(conscript()(statement)(), false)
     })
   }
 
@@ -140,60 +140,61 @@ describe('conscript()', function () {
 
   for (const statement of funcStatements) {
     it(`should evaluate a function call: \`${statement}\``, function () {
-      assert.strictEqual(conscript(statement)(funcVars), true)
+      assert.strictEqual(conscript()(statement)(funcVars), true)
     })
   }
 
   it('should support nested function call', function () {
-    assert.strictEqual(conscript('f(2)(3)=5', {unknownsAre: 'errors'})({f (x) { return y => x + y }}), true)
+    assert.strictEqual(conscript({unknownsAre: 'errors'})('f(2)(3)=5')({f (x) { return y => x + y }}), true)
   })
 
   it('should support dot notation', function () {
-    assert.strictEqual(conscript('a.b=1')({a: {b: 1}}), true)
+    assert.strictEqual(conscript()('a.b=1')({a: {b: 1}}), true)
   })
 
   it('should support dot notation for keys with spaces', function () {
-    assert.strictEqual(conscript('a.{b c}=1')({a: {'b c': 1}}), true)
+    assert.strictEqual(conscript()('a.{b c}=1')({a: {'b c': 1}}), true)
   })
 
   it('should ignore operators in quotes', function () {
-    assert.strictEqual(conscript('"1=1" = "1=1" & "1&2" = "1&2"')(), true)
+    assert.strictEqual(conscript()('"1=1" = "1=1" & "1&2" = "1&2"')(), true)
   })
 
   it('should ignore array syntax in quotes', function () {
-    assert.strictEqual(conscript('"[1, 2]" = "[1, " + "2]"')(), true)
+    assert.strictEqual(conscript()('"[1, 2]" = "[1, " + "2]"')(), true)
   })
 
   it('should ignore parentheses in quotes', function () {
-    assert.strictEqual(conscript('("1)" = "1)")')(), true)
+    assert.strictEqual(conscript()('("1)" = "1)")')(), true)
   })
 
   it('should ignore things in brackets', function () {
-    assert.strictEqual(conscript('a.{a?b:"["]\\}} is null', {safe: true})(), true)
+    assert.strictEqual(conscript()('a.{a?b:"["]\\}} is null', {safe: true})(), true)
   })
 
   it('should support `unknownsAre` argument', function () {
-    assert.strictEqual(conscript('unknown="unknown"')(), true)
-    assert.strictEqual(conscript('unknown=null', {unknownsAre: 'null'})(), true)
-    assert.throws(() => { conscript('unknown=1', {unknownsAre: 'errors'})() })
+    assert.strictEqual(conscript()('unknown="unknown"')(), true)
+    assert.strictEqual(conscript()('unknown=null', {unknownsAre: 'null'})(), true)
+    assert.throws(() => { conscript({unknownsAre: 'errors'})('unknown=1')() })
+    assert.throws(() => { conscript()('unknown=1', {unknownsAre: 'errors'})() })
   })
 
   it('should throw an error accessing an invalid array property', function () {
-    assert.doesNotThrow(() => { conscript('arr.0')({arr: [1]}) })
-    assert.throws(() => { conscript('arr.pop is function')({arr: [1]}) })
-    assert.throws(() => { conscript('[1].pop is function')() })
+    assert.doesNotThrow(() => { conscript()('arr.0')({arr: [1]}) })
+    assert.throws(() => { conscript()('arr.pop is function')({arr: [1]}) })
+    assert.throws(() => { conscript()('[1].pop is function')() })
   })
 
   it('should support `defaultLeft` argument', function () {
-    assert.strictEqual(conscript('!"object"&("number"|"string")')({}, {defaultLeft: typeof 'test'}), true)
-    assert.strictEqual(conscript('"string"&!"object"')({}, {defaultLeft: typeof {}}), false)
-    assert.strictEqual(conscript('!string&object&is string&is not int')({}, {defaultLeft: typeof {}}), true)
-    assert.strictEqual(conscript('>2 & +1=4 & -  1 = 2')({}, {defaultLeft: 3}), true)
-    assert.strictEqual(conscript('>2 & +1=4 & -  1 = 2')({}, {defaultLeft: 3}), true)
-    assert.strictEqual(conscript('.key="value"')({}, {defaultLeft: {key: 'value'}}), true)
-    assert.strictEqual(conscript('(?:2)=2')({}, {defaultLeft: false}), true)
-    assert.strictEqual(conscript('is string')({}, {defaultLeft: 'test'}), true)
-    assert.strictEqual(conscript('matches @^t@')({}, {defaultLeft: 'test'}), true)
-    assert.strictEqual(conscript('then "ing" = "testing"')({}, {defaultLeft: 'test'}), true)
+    assert.strictEqual(conscript()('!"object"&("number"|"string")')({}, {defaultLeft: typeof 'test'}), true)
+    assert.strictEqual(conscript()('"string"&!"object"')({}, {defaultLeft: typeof {}}), false)
+    assert.strictEqual(conscript()('!string&object&is string&is not int')({}, {defaultLeft: typeof {}}), true)
+    assert.strictEqual(conscript()('>2 & +1=4 & -  1 = 2')({}, {defaultLeft: 3}), true)
+    assert.strictEqual(conscript()('>2 & +1=4 & -  1 = 2')({}, {defaultLeft: 3}), true)
+    assert.strictEqual(conscript()('.key="value"')({}, {defaultLeft: {key: 'value'}}), true)
+    assert.strictEqual(conscript()('(?:2)=2')({}, {defaultLeft: false}), true)
+    assert.strictEqual(conscript()('is string')({}, {defaultLeft: 'test'}), true)
+    assert.strictEqual(conscript()('matches @^t@')({}, {defaultLeft: 'test'}), true)
+    assert.strictEqual(conscript()('then "ing" = "testing"')({}, {defaultLeft: 'test'}), true)
   })
 })

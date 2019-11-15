@@ -154,7 +154,7 @@ function nullify (x) {
   return typeof x === 'undefined' ? null : x
 }
 
-module.exports = require('parser-factory')('start', {
+const conscript = require('parser-factory')('start', {
   start ({call}) {
     const f = call('expression')
     return (...args) => f(args)
@@ -348,3 +348,5 @@ module.exports = require('parser-factory')('start', {
     return () => n
   },
 })
+
+module.exports = (defaultOptions = {}) => (conscription, options = {}) => conscript(conscription, {...defaultOptions, ...options})

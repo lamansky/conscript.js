@@ -5,7 +5,7 @@ The JavaScript parser for the Conscript language. Conscript (pronounced _CON-scr
 Here’s an example that uses Conscript in a calendar context:
 
 ```javascript
-const conscript = require('conscript')
+const conscript = require('conscript')()
 
 const date = new Date()
 const vars = {
@@ -32,12 +32,13 @@ npm i conscript
 
 ## API
 
-The module exports a single function.
+The module exports a single function which returns a function which returns another function.
 
-### Parameters
+The first function is intended to be called at require-time, e.g. `require('conscript')(globalOptions)`.
 
-1. `conscription` (string): A condition script.
-2. Optional: Object argument:
+### Parameter of the First Function
+
+1. Optional: Object argument: Global options that will apply to all subsequent calls. Possible options:
     * `safeCall` (bool): If set to `true`, calling a non-function will fail silently and generate `null`. If set to `false`, an error will be thrown. Defaults to `false`.
     * `safeNav` (bool): If set to `true`, accessing a property of a non-object will fail silently and generate `null`. If set to `false`, an error will be thrown. Defaults to `false`.
     * `safe` (bool): A shortcut for setting both `safeCall` and `safeNav` simultaneously.
@@ -46,11 +47,12 @@ The module exports a single function.
         * `null`: Convert unknown identifiers to `null`.
         * `errors`: Throw a `ReferenceError` whenever an unknown identifier is found.
 
-### Return Value
+### Parameters of the Second Function
 
-Converts the condition script into a function. This returned function accepts one object argument:
+1. `conscription` (string): A condition script.
+2. Optional: `options` (object): Any options that should override the global options you set when you called the first function (see above).
 
-#### Parameters
+### Parameters of the Third Function
 
 1. `vars` (function, object, or Map)
     * If `vars` is a function, it is called whenever Conscript comes across an identifier, and is passed two arguments: the identifier name, and a `notAVar` symbol to be returned if the identifier is not a variable.
@@ -58,7 +60,7 @@ Converts the condition script into a function. This returned function accepts on
 2. Optional: Object argument:
     * `defaultLeft` (any): A value to be used as the left operand for operations that omit a left operand.
 
-#### Return Value
+### Return Value
 
 Returns `true` or `false` depending on whether or not the condition script is met on the basis of `vars`.
 
@@ -71,6 +73,7 @@ Here are some of the language features which you can use in the Conscript string
 Conscript supports string literals and number literals. String literals are surrounded with either double or single quotes.
 
 ```javascript
+const conscript = require('conscript')()
 conscript('2 > 1')() // true
 conscript('"test" = "test"')() // true
 ```
@@ -78,12 +81,14 @@ conscript('"test" = "test"')() // true
 If `unknownsAre` is set to `strings`, then strings do not need to be quoted.
 
 ```javascript
+const conscript = require('conscript')()
 conscript('test is string')() // true
 ```
 
 ### Variables
 
 ```javascript
+const conscript = require('conscript')()
 conscript('x=1')({x: 1}) // true
 conscript('x=1')({x: 2}) // false
 ```
@@ -93,18 +98,21 @@ When Conscript comes across an identifier (`x` in the example above), it will lo
 Normally, variable names must be alphanumeric. If you need support for more characters, use the `${var}` construction:
 
 ```javascript
+const conscript = require('conscript')()
 conscript('${hello world!}=123')({'hello world!': 123}) // true
 ```
 
 If you need "variable variables," use the `$(expression)` construction:
 
 ```javascript
+const conscript = require('conscript')()
 conscript('$(x)="z"')({x: 'y', y: 'z'}) // true
 ```
 
 You can also implement determined-at-runtime variable names by passing a function instead of a dictionary object:
 
 ```javascript
+const conscript = require('conscript')()
 conscript('variable="variable"')(varName => varName) // true
 ```
 
@@ -113,6 +121,7 @@ conscript('variable="variable"')(varName => varName) // true
 Arrays are created using square brackets and can contain literals or variables.
 
 ```javascript
+const conscript = require('conscript')()
 // The *= operator checks to see if the array on the left contains the value on the right.
 conscript('[123, "test", var] *= "value"')({var: 'value'}) // true
 ```
@@ -122,19 +131,26 @@ conscript('[123, "test", var] *= "value"')({var: 'value'}) // true
 You can pass functions as variables and can call them from within the condition string.
 
 ```javascript
+const conscript = require('conscript')()
 const vars = {
   sum (a, b) { return a + b },
 }
 conscript('sum(2,2)=4')(vars) // true
 ```
 
-If the variable is not a function, the Conscript parser will throw an error. If you want non-function calls to fail silently, set the `safeCall` setting to `true`.
+If the variable is not a function, the Conscript parser will throw an error. If you want non-function calls to fail silently, set the `safeCall` setting to `true`, like so:
+
+```javascript
+const conscript = require('conscript')({safeCall: true})
+conscript('sum(2,2)=4')({}) // false
+```
 
 ### Parentheses
 
 Clauses can be grouped with parentheses, allowing for nested logical tests.
 
 ```javascript
+const conscript = require('conscript')()
 conscript('(x>0&x<=y-1)|x=999')({x: 51, y: 100}) // true
 ```
 
@@ -143,6 +159,7 @@ conscript('(x>0&x<=y-1)|x=999')({x: 51, y: 100}) // true
 If one of your variables is an object, you can access its properties like so:
 
 ```javascript
+const conscript = require('conscript')()
 const vars = {
   obj: {a: 1},
 }
@@ -152,6 +169,7 @@ conscript('obj.a=1')(vars) // true
 Normally, property names must be alphanumeric. If you need support for more characters, use the `.{prop}` construction:
 
 ```javascript
+const conscript = require('conscript')()
 const vars = {
   obj: {'number one': 1},
 }
@@ -161,6 +179,7 @@ conscript('obj.{number one}=1')(vars) // true
 If you need dynamic property access, use the `.(expression)` construction:
 
 ```javascript
+const conscript = require('conscript')()
 const vars = {
   arr: [0, 10, 20],
 }
@@ -172,6 +191,7 @@ conscript('arr.(1 + 1) = 20')(vars) // true
 Regular expressions are surrounded on either side by `@`. Flags (such as `i`) can go after the final `@`. Regular expressions are used in conjunction with the `matches` operator. The regex can go on the left and the string on the right, or vice versa.
 
 ```javascript
+const conscript = require('conscript')()
 conscript('@^ex@ matches "Example"')() // false
 conscript('@^ex@ !matches "Example"')() // true
 conscript('@^ex@i matches "Example"')() // true
@@ -275,6 +295,7 @@ Note that this differs from JavaScript, which uses double ampersand and pipe cha
 ### Ternary Comparison Operator
 
 ```javascript
+const conscript = require('conscript')()
 conscript('enabled ? x=1 : x=2')({x: 1, enabled: true}) // true
 conscript('(x ?: 123) = 123')({x: false}) // true
 ```
@@ -284,6 +305,7 @@ conscript('(x ?: 123) = 123')({x: false}) // true
 If you set the `defaultLeft` option, the left sides of operations can be omitted:
 
 ```javascript
+const conscript = require('conscript')()
 conscript('>2 & <4 & *2=6')({}, {defaultLeft: 3}) // true
 ```
 
@@ -299,6 +321,10 @@ conscript('"a"|"b"')({}, {defaultLeft: 'X'}) // false
 ## Version Migration Guide
 
 Here are backward-incompatible changes you need to know about.
+
+### 0.1.0 ⇒ Master
+
+* A complete Conscript call now involves 3 function calls instead of 2. The first function call is an opportunity to specify global settings, e.g. `require('conscript')(globalSettings)`. The only modification necessary to migrate your existing code is to change `require('conscript')` to `require('conscript')()`.
 
 ### 0.0.0 ⇒ 0.1.0
 
