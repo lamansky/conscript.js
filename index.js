@@ -15,7 +15,7 @@ const u = x => typeof x === 'undefined'
 const boolOps = ['&', '|']
 const absCompOps = ['<', '<=', '=', '>=', '>', '<>', '~=', '^=', '^~=', '$=', '$~=', '*=', '*~=']
 const compOps = [' is ', ' is not ', ' !is ', ' in ', ' ~in ', ' not in ', ' !in ', ' !~in ', ' not ~in ', ' matches ', ' !matches ', ...absCompOps, ...absCompOps.map(s => '!' + s)]
-const mathOps = ['+', '-', '*', '/', '%', '^']
+const mathOps = ['+', ' before ', ' then ', '-', '*', '/', '%', '^']
 const regexDelimiter = '@'
 
 const alphanumeric = /[a-zA-Z0-9]/
@@ -84,6 +84,14 @@ function applyMathOperator (left, op, right) {
     case '/': return args => left(args) / right(args)
     case '%': return args => left(args) % right(args)
     case '^': return args => left(args) ** right(args)
+    case ' before ': return args => {
+      const rightResult = right(args)
+      return rightResult ? left(args) + rightResult : rightResult
+    }
+    case ' then ': return args => {
+      const leftResult = left(args)
+      return leftResult ? leftResult + right(args) : leftResult
+    }
   }
   throw new SyntaxError('Unhandled math operator `' + op + '`')
 }

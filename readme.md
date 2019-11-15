@@ -242,12 +242,20 @@ To the right side of the type operators is a string representing a type check an
 
 | Operator | Meaning |
 | -------- | ------- |
-| `+` | Add or concatenate |
+| `+` | Add |
 | `-` | Subtract |
 | `*` | Multiply |
 | `/` | Divide |
 | `%` | Modulo |
 | `^` | Exponentiate |
+
+### Concatenation Operators
+
+| Operator | Meaning | Example |
+| -------- | ------- | ------- |
+| `+` | Concatenate | `"prefix" + $str + "suffix"` |
+| `before` | Prefix the left operand to the right operand if the right is non-empty | `"prefix" before $str` |
+| `then` | Suffix the right operand to the left operand if the left is non-empty | `$str then "suffix"` |
 
 ### Logical Operators
 

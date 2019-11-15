@@ -34,6 +34,10 @@ describe('conscript()', function () {
     '"Hello" !$~= "H"',
     '"Hello world!" *= "!"',
     '"Test" *= ""',
+    '"test" before "ing" = "testing"',
+    '"test" then "ing" = "testing"',
+    '0 then 2 = 0',
+    '1 then 2 = 3',
     '10 *= 0',
     '"" = ""',
     '5 + 5 = 10',
@@ -190,5 +194,6 @@ describe('conscript()', function () {
     assert.strictEqual(conscript('(?:2)=2')({}, {defaultLeft: false}), true)
     assert.strictEqual(conscript('is string')({}, {defaultLeft: 'test'}), true)
     assert.strictEqual(conscript('matches @^t@')({}, {defaultLeft: 'test'}), true)
+    assert.strictEqual(conscript('then "ing" = "testing"')({}, {defaultLeft: 'test'}), true)
   })
 })
