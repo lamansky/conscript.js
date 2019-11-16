@@ -327,8 +327,9 @@ conscript('"a"|"b"')({}, {defaultLeft: 'X'}) // false
 
 Here are backward-incompatible changes you need to know about.
 
-### 0.1.0 ⇒ Master
+### 0.1.0 ⇒ 0.2.0
 
+* The minimum supported Node version is now 8.3.0 (instead of 7.0.0).
 * A complete Conscript call now involves 3 function calls instead of 2. The first function call is an opportunity to specify global settings, e.g. `require('conscript')(globalSettings)`. The only modification necessary to migrate your existing code is to change `require('conscript')` to `require('conscript')()`.
 * Regular expression literals are now disabled by default, to protect against [ReDoS](https://en.wikipedia.org/wiki/ReDoS) attacks when dealing with user input. Enabling them requires the `allowRegexLiterals` option to be set to `true`.
 
