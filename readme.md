@@ -63,7 +63,7 @@ The first function is intended to be called at require-time, e.g. `require('cons
 
 ### Return Value
 
-Returns `true` or `false` depending on whether or not the condition script is met on the basis of `vars`.
+Returns the result of the condition script. Usually this is `true` or `false` if you used a comparison operator, or in most use cases involving `defaultLeft`, but otherwise theoretically can be any value to which your script evaluates.
 
 ## Conscript Syntax
 
