@@ -73,6 +73,14 @@ describe('conscript()', function () {
     'obj.d.key = value',
     'obj.c=3&obj.d.hi=null',
     '(var=123 ? 1 : 2) = 1',
+    'under_score = "yes"',
+    '$under_score = "yes"',
+    '${under_score} = "yes"', // eslint-disable-line no-template-curly-in-string
+    'has space = 1',
+    '$has space = 1',
+    'has space is number',
+    '$has space is number',
+    '!${has space is number}', // eslint-disable-line no-template-curly-in-string
     '$("v" + "ar") = 123',
     '$(v + ar) = 123',
     '$(x)="z"',
@@ -97,7 +105,16 @@ describe('conscript()', function () {
 
   for (const statement of trueStatements) {
     it(`should evaluate as true: \`${statement}\``, function () {
-      const vars = {var: 123, obj: {'a b': () => x => x, c: 3, d: new Map([['key', 'value']])}, bool: false, x: 'y', y: 'z'}
+      const vars = {
+        var: 123,
+        under_score: 'yes',
+        'has space': 1,
+        'has space is number': false,
+        obj: {'a b': () => x => x, c: 3, d: new Map([['key', 'value']])},
+        bool: false,
+        x: 'y',
+        y: 'z',
+      }
       assert.strictEqual(conscript({allowRegexLiterals: true})(statement)(vars), true)
     })
   }

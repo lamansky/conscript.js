@@ -18,7 +18,8 @@ const compOps = [' is ', ' is not ', ' !is ', ' in ', ' ~in ', ' not in ', ' !in
 const mathOps = ['+', ' before ', ' then ', '-', '*', '/', '%', '^']
 const regexDelimiter = '@'
 
-const alphanumeric = /[a-zA-Z0-9]/
+const identifierName = /[a-zA-Z0-9_ ]/
+const notIdentifierName = /[^a-zA-Z0-9_ ]/
 const digits = '0123456789'
 const esc = '\\'
 const ignore = [['(', ')'], ['[', ']'], ['{', '}'], ['"', '"', {esc}], ["'", "'", {esc}], ['@', '@', {esc}]]
@@ -256,14 +257,14 @@ const conscript = require('parser-factory')('start', {
       return () => literal
     }
 
-    const literal = consumeWhile(alphanumeric)
+    const literal = consumeWhile(identifierName)
     return () => literal
   },
 
   fallback ({call, char, until}, {userArgs: [{unknownsAre} = {}]}) {
     const identifier = until('(', '.').trim()
     if (char()) return call('valueAccess', {identifier: () => identifier})
-    if (/[^a-zA-Z0-9 ]/.test(identifier)) throw new SyntaxError('Unrecognized syntax: `' + identifier + '`')
+    if (notIdentifierName.test(identifier)) throw new SyntaxError('Unrecognized syntax: `' + identifier + '`')
     return args => {
       const varValue = getVar(args, identifier)
       if (varValue !== notAVar) return varValue
