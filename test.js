@@ -14,6 +14,7 @@ describe('conscript()', function () {
     '"b" > "a"',
     '0 <> 1',
     '"a" != "b"',
+    '[1, 2, 3] ^= 1',
     '[1, 2, 3] *= 1',
     '[1, 2, "3"] *~= 3',
     '[1, 2, "3"] !*= 3',
@@ -22,8 +23,17 @@ describe('conscript()', function () {
     '[1, 2, 3].length = 3',
     '[1, 2, 3].count = 3',
     '[5, 6, 7].last = 7',
+    '[1, 2, 3].slice(1, 2) = [2]',
+    '[1, 2, 3].slice(1, 2) ~= [2]',
+    '[1, 2, 3].some((x){x=2})',
+    '[1, 2, 3].map((x){x*2}) *= 6',
+    '[1, 2, 3].map((x){x*2}).some((x){x=6})',
+    '[[1], [2], [3]].every((x){x.some((x){x is number})})',
     '["Hello, world"] *= "Hello, world"',
     '["Hello","world"] *~= "HELLO"',
+    '"Test".slice(1, 3) = "es"',
+    '"aaa".every((char){char="a"})',
+    '"Test".some((char){char="e"})',
     '[0] = [0]',
     '["test"] = [\'test\']',
     '"test" ~= "TEST"',
@@ -56,6 +66,9 @@ describe('conscript()', function () {
     '(((1=1)))',
     '!!1',
     '!0',
+    '1 is int',
+    '1.1 is float',
+    '1.1 is not int',
     'true',
     'true = false | true',
     '"test" is "string"',
@@ -71,7 +84,11 @@ describe('conscript()', function () {
     'obj.{a b}()(c) = c',
     '(1|2)=1',
     'obj.d.key = value',
+    '(){obj}().d.key = value',
     'obj.c=3&obj.d.hi=null',
+    'obj.e is null',
+    'obj.prototype is null',
+    'obj.hasOwnProperty is null',
     '(var=123 ? 1 : 2) = 1',
     'under_score = "yes"',
     '$under_score = "yes"',
@@ -101,6 +118,14 @@ describe('conscript()', function () {
     '"test" in ["test", "example"]',
     '"test" !in "example"',
     '"test" ~in "Test"',
+    '"Test".0 = "T"',
+    '(x){x=1}(1)',
+    '(x){x=null}()',
+    '(true?(x){x=1}:(x){x=2})(1)',
+    '(false?(x){x=1}:(x){x=2})(2)',
+    '( x , y ) { x = y } ( 2 , 2 )',
+    '(x){x=1} is function',
+    '(){}() = null',
   ]
 
   for (const statement of trueStatements) {
@@ -133,6 +158,7 @@ describe('conscript()', function () {
     '"123" is number',
     'true ? false : true',
     '"test" in "Test"',
+    'null is object',
   ]
 
   for (const statement of falseStatements) {
@@ -144,6 +170,7 @@ describe('conscript()', function () {
   const funcStatements = [
     '$sum is function & $doesntExist is not function & $doesntExist is not string',
     'sum(2,2)=4',
+    'sum ( 2 , 2 ) = 4',
     'sum(2, sum(1, 1)) = 4',
     '"test(\'1\', 2)"=sum("test(\'1\',", " 2)")',
     '[sum(5,3)] = [8]',
@@ -163,6 +190,11 @@ describe('conscript()', function () {
 
   it('should support nested function call', function () {
     assert.strictEqual(conscript({unknownsAre: 'errors'})('f(2)(3)=5')({f (x) { return y => x + y }}), true)
+  })
+
+  it('should throw an error trying to call a non-function', function () {
+    assert.throws(() => conscript()('(1=1)(1=1)')(), TypeError)
+    assert.throws(() => conscript()('var("string")')(), TypeError)
   })
 
   it('should support dot notation', function () {

@@ -71,19 +71,88 @@ Here are some of the language features which you can use in the Conscript string
 
 ### Literals
 
-Conscript supports string literals and number literals. String literals are surrounded with either double or single quotes.
+#### Number Literals
+
+Floats and negative numbers are supported.
 
 ```javascript
 const conscript = require('conscript')()
 conscript('2 > 1')() // true
-conscript('"test" = "test"')() // true
+conscript('1.1 > 1')() // true
+conscript('-1 < 0')() // true
 ```
 
-If `unknownsAre` is set to `strings`, then strings do not need to be quoted.
+#### String Literals
+
+String literals are enclosed with either double or single quotes.
 
 ```javascript
 const conscript = require('conscript')()
+conscript('"test" = "test"')() // true
+```
+
+If the `unknownsAre` setting is set to `strings` (which is the default), then strings do not need to be quoted.
+
+```javascript
+const conscript = require('conscript')({unknownsAre: 'strings'})
+
+// Two unquoted strings ("test" and "string") separated by the `is` operator:
 conscript('test is string')() // true
+```
+
+#### Boolean and Null Literals
+
+Conscript supports `true`, `false`, and `null` literals. These are case-insensitive.
+
+```javascript
+const conscript = require('conscript')()
+conscript('true')() // true
+conscript('!false')() // true
+conscript('!null')() // true
+```
+
+Unlike JavaScript, Conscript does not distinguish between `null` and `undefined`. Only `null` is used. Also unlike JavaScript, Conscript does not consider `null` to be an object.
+
+#### Array Literals
+
+Arrays are created using square brackets and can contain variables or other literals.
+
+```javascript
+const conscript = require('conscript')()
+// The *= operator checks to see if the array on the left contains the value on the right.
+conscript('[123, "test", var] *= "value"')({var: 'value'}) // true
+```
+
+#### Function Literals
+
+Function literals are generally used as callback arguments for other functions. To create a function, define the named parameters list, surrounded by parentheses, then define the function body, surrounded by curly brackets.
+
+All Conscript syntax produces some sort of value (Conscript does not use [statements](https://2ality.com/2012/09/expressions-vs-statements.html)), so Conscript function declarations do not use `return`.
+
+If needed, you can call a function immediately after defining it. Functions are called using a parenthesized list of arguments, as in JavaScript.
+
+```javascript
+const conscript = require('conscript')()
+
+// This is the same as `typeof (x => x === 1) === 'function'` in JavaScript
+conscript('(x){x=1} is function')({}) // true
+
+// This calls the function immediately after defining it
+conscript('(x,y){x=y}(1,1)')({}) // true
+```
+
+#### Regular Expression Literals
+
+Regular expressions are surrounded on either side by `@`. Flags (such as `i`) can go after the final `@`. Regular expressions are used in conjunction with the `matches` operator. The regex can go on the left and the string on the right, or vice versa.
+
+The use of regular expression literals (e.g. `@regex@`) requires the `allowRegexLiterals` option to be set to `true`.
+
+```javascript
+const conscript = require('conscript')({allowRegexLiterals: true})
+conscript('@^ex@ matches "Example"')() // false
+conscript('@^ex@ !matches "Example"')() // true
+conscript('@^ex@i matches "Example"')() // true
+conscript('"Example" matches @^ex@i')() // true
 ```
 
 ### Variables
@@ -110,24 +179,12 @@ const conscript = require('conscript')()
 conscript('$(x)="z"')({x: 'y', y: 'z'}) // true
 ```
 
-You can also implement determined-at-runtime variable names by passing a function instead of a dictionary object:
+You can implement determined-at-runtime variable names by passing a function instead of a dictionary object:
 
 ```javascript
 const conscript = require('conscript')()
 conscript('variable="variable"')(varName => varName) // true
 ```
-
-### Arrays
-
-Arrays are created using square brackets and can contain literals or variables.
-
-```javascript
-const conscript = require('conscript')()
-// The *= operator checks to see if the array on the left contains the value on the right.
-conscript('[123, "test", var] *= "value"')({var: 'value'}) // true
-```
-
-### Functions
 
 You can pass functions as variables and can call them from within the condition string.
 
@@ -155,7 +212,9 @@ const conscript = require('conscript')()
 conscript('(x>0&x<=y-1)|x=999')({x: 51, y: 100}) // true
 ```
 
-### Property Access
+### Properties & Methods
+
+#### Objects
 
 If one of your variables is an object, you can access its properties like so:
 
@@ -187,25 +246,54 @@ const vars = {
 conscript('arr.(1 + 1) = 20')(vars) // true
 ```
 
-### Regular Expressions
+#### Arrays & Strings
 
-Regular expressions are surrounded on either side by `@`. Flags (such as `i`) can go after the final `@`. Regular expressions are used in conjunction with the `matches` operator. The regex can go on the left and the string on the right, or vice versa.
-
-The use of regular expression literals (e.g. `@regex@`) requires the `allowRegexLiterals` option to be set to `true`.
+You can access array elements and string characters with the same syntax used to access object properties. Arrays and strings are zero-indexed.
 
 ```javascript
-const conscript = require('conscript')({allowRegexLiterals: true})
-conscript('@^ex@ matches "Example"')() // false
-conscript('@^ex@ !matches "Example"')() // true
-conscript('@^ex@i matches "Example"')() // true
-conscript('"Example" matches @^ex@i')() // true
+const conscript = require('conscript')()
+conscript('[1, 2, 3].0 = 1')() // true
+conscript('"Test".1 = "e"')() // true
+```
+
+Besides numeric indexes, arrays and strings have the following properties:
+
+* `empty` returns `true` if the array has no items, and `false` otherwise.
+* `last` is the same as `arr.(arr.length - 1)`.
+* `length` returns the number of elements in the array.
+* `multiple` returns `true` if the array has more than one item, and `false` otherwise.
+
+```javascript
+const conscript = require('conscript')()
+conscript('[].empty')() // true
+conscript('[2, 4, 6].length = 3')() // true
+conscript('[2, 4, 6].last = 6')() // true
+conscript('[1, 2].multiple')() // true
+```
+
+Arrays and strings also have the following methods:
+
+* `every`
+* `map`
+* `slice`
+* `some`
+
+These methods work like their JavaScript equivalents. Strings are treated as if they are arrays of characters.
+
+```javascript
+const conscript = require('conscript')()
+conscript('[1, 2, 3].every((x){x is number})')() // true
+conscript('[1, 2, 3].map((x){x*2}) = [2, 4, 6]')() // true
+conscript('[1, 2, 3].slice(1, 2) = [2]')() // true
+conscript('[1, 2, 3].some((x){x=3})')() // true
+conscript('"aaa".every((char){char="a"})')() // true
 ```
 
 ### Comparison Operators
 
 | Operator | Meaning | Example |
 | -------- | ------- | ------- |
-| `=` | Strictly equals | `1 = 1`<br>`"a" = "a"` |
+| `=` | Equals, or has equal elements | `1 = 1`<br>`"a" = "a"`<br>`[1,2]=[1,2]` |
 | `~=` | Case-insensitively equals | `"Abc" ~= "abc"` |
 | `>` | Greater than | `2 > 1` |
 | `>=` | Greater than or equal to | `1 >= 1` |

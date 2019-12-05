@@ -19,7 +19,7 @@ const mathOps = ['+', ' before ', ' then ', '-', '*', '/', '%', '^']
 const regexDelimiter = '@'
 
 const identifierName = /[a-zA-Z0-9_ ]/
-const notIdentifierName = /[^a-zA-Z0-9_ ]/
+const notIdentifierName = /[^a-zA-Z0-9_ ]/g
 const digits = '0123456789'
 const esc = '\\'
 const ignore = [['(', ')'], ['[', ']'], ['{', '}'], ['"', '"', {esc}], ["'", "'", {esc}], ['@', '@', {esc}]]
@@ -111,17 +111,23 @@ function callFunction (identifier, func, funcArgs, maybe) {
   if (typeof func === 'function') {
     return nullify(func(...funcArgs))
   } else if (!maybe) {
-    throw new TypeError('`' + identifier + '` is not a function')
+    throw new TypeError('`' + (identifier || func) + '` is not a function')
   }
   return null
 }
 
 function accessArrayProp (arr, prop, maybe) {
   arr = arr()
-  if (Array.isArray(arr)) {
+  if (Array.isArray(arr) || typeof arr === 'string') {
     switch (prop) {
+      case 'empty': return arr.length === 0
+      case 'every': return cb => Array.from(arr).every(cb)
       case 'last': return arr[arr.length - 1]
       case 'length': case 'count': return arr.length
+      case 'map': return cb => Array.from(arr).map(cb)
+      case 'multiple': return arr.length > 1
+      case 'some': return cb => Array.from(arr).some(cb)
+      case 'slice': return (start, stop) => arr.slice(start, stop)
       default: return arr[toNumber(prop, {elseThrow: 'Array index `' + prop + '` is not a number'})]
     }
   } else if (!maybe) {
@@ -141,7 +147,7 @@ function accessObjectProp (obj, prop, maybe) {
   return null
 }
 
-function getVar ([vars], varName) {
+function getUserVar ([vars], varName) {
   if (typeof vars === 'function') {
     const value = nullify(vars(varName, notAVar))
     if (value !== notAVar) return value
@@ -161,23 +167,23 @@ const conscript = require('parser-factory')('start', {
     return (...args) => f(args)
   },
 
-  expression ({consume, is, sub, shift, until, untilEnd}, p, {inTernary} = {}) {
+  expression ({consume, is, sub, shift, until, untilEnd}, p, {getVar = getUserVar, inTernary} = {}) {
     const a2t = until('?', {ignore}).trim()
-    if (!consume('?')) return sub('expression2', a2t, {inTernary})
-    const a2 = sub('expression2', a2t, {inTernary: true})
+    if (!consume('?')) return sub('expression2', a2t, {getVar, inTernary})
+    const a2 = sub('expression2', a2t, {getVar, inTernary: true})
     const a = args => {
       const {defaultLeft} = args[1] || {}
       let value
       if (a2) value = a2(args)
       return (u(value) && !u(defaultLeft)) ? defaultLeft : value
     }
-    const b2 = sub('expression', untilEnd('?', ':', {ignore}).trim(), {inTernary: true})
+    const b2 = sub('expression', untilEnd('?', ':', {ignore}).trim(), {getVar, inTernary: true})
     const b = args => {
       const value = b2(args)
       return u(value) ? a(args) : value
     }
     if (!consume(':')) throw new SyntaxError('Missing second half of ternary expression')
-    const c = sub('expression', shift(Infinity), {inTernary: true})
+    const c = sub('expression', shift(Infinity), {getVar, inTernary: true})
     return args => a(args) ? b(args) : c(args)
   },
 
@@ -185,8 +191,9 @@ const conscript = require('parser-factory')('start', {
     return call('operator', {operators: boolOps, apply: applyBooleanOperator, next: 'expression3', t})
   },
 
-  expression3 ({call}, p, {inTernary} = {}) {
-    const cb = call('operator', {operators: compOps, apply: applyComparisonOperator, next: 'expression4'})
+  expression3 ({call}, p, t = {}) {
+    const {inTernary} = t
+    const cb = call('operator', {operators: compOps, apply: applyComparisonOperator, next: 'expression4', t})
     return args => {
       const {defaultLeft} = args[1] || {}
       const value = cb(args)
@@ -194,8 +201,8 @@ const conscript = require('parser-factory')('start', {
     }
   },
 
-  expression4 ({call}) {
-    return call('operator', {operators: mathOps, apply: applyMathOperator, next: 'value'})
+  expression4 ({call}, p, t) {
+    return call('operator', {operators: mathOps, apply: applyMathOperator, next: 'value', t})
   },
 
   operator ({char, consume, is, sub, until}, {userArgs: [{safe} = {}]}, {operators, apply, next, t}) {
@@ -225,27 +232,27 @@ const conscript = require('parser-factory')('start', {
     consumeWhile(' \r\n\t')
   },
 
-  value ({bracket, call, char, consume, is, until}, {userArgs: [{allowRegexLiterals} = {}]}) {
+  value ({bracket, call, char, consume, is, until}, {userArgs: [{allowRegexLiterals} = {}]}, {getVar} = {}) {
     while (char()) {
       call('whitespace')
-      if (consume('(')) return bracket('expression', '(', ')', {ignore})
+      if (consume('(')) return call('valueAccess', {getVar, value: call('parens', {getVar})})
       else if (consume('!')) {
-        const cb = call('value')
+        const cb = call('value', {getVar})
         return args => {
           const {defaultLeft} = args[1] || {}
           const value = cb(args)
           return (u(defaultLeft) || typeof value === 'boolean') ? !value : value !== defaultLeft
         }
-      } else if (consume('$')) return call('valueAccess', {identifier: call('identifier')})
-      else if (consume('[')) return call('valueAccess', {accessProp: accessArrayProp, value: bracket('list', '[', ']', {ignore})})
+      } else if (consume('$')) return call('valueAccess', {getVar, identifier: call('identifier')})
+      else if (consume('[')) return call('valueAccess', {accessProp: accessArrayProp, getVar, value: bracket('list', '[', ']', {ignore})})
       else if (allowRegexLiterals && consume(regexDelimiter)) return call('regex')
-      else if (is('"', "'")) return call('string')
-      else if (is('.')) return call('valueAccess')
+      else if (is('"', "'")) return call('valueAccess', {accessProp: accessArrayProp, getVar, value: call('string')})
+      else if (is('.')) return call('valueAccess', {getVar})
       else if (consume('true', {ci: true})) return () => true
       else if (consume('false', {ci: true})) return () => false
       else if (consume('null', {ci: true})) return () => null
       else if (number.test(char(3))) return call('number')
-      return call('fallback')
+      return call('fallback', {getVar})
     }
   },
 
@@ -261,9 +268,9 @@ const conscript = require('parser-factory')('start', {
     return () => literal
   },
 
-  fallback ({call, char, until}, {userArgs: [{unknownsAre} = {}]}) {
+  fallback ({call, char, until}, {userArgs: [{unknownsAre} = {}]}, {getVar} = {}) {
     const identifier = until('(', '.').trim()
-    if (char()) return call('valueAccess', {identifier: () => identifier})
+    if (char()) return call('valueAccess', {identifier: () => identifier, getVar})
     if (notIdentifierName.test(identifier)) throw new SyntaxError('Unrecognized syntax: `' + identifier + '`')
     return args => {
       const varValue = getVar(args, identifier)
@@ -283,7 +290,7 @@ const conscript = require('parser-factory')('start', {
     }
   },
 
-  valueAccess ({bracket, call, char, consume}, {userArgs: [{safe, safeNav = safe, safeCall = safe} = {}]}, {accessProp = accessObjectProp, identifier, value} = {}) {
+  valueAccess ({bracket, call, char, consume}, {userArgs: [{safe, safeNav = safe, safeCall = safe} = {}]}, {accessProp = accessObjectProp, getVar, identifier, value} = {}) {
     let cb = value || (identifier ? args => {
       const val = getVar(args, identifier(args))
       return val === notAVar ? null : val
@@ -292,6 +299,7 @@ const conscript = require('parser-factory')('start', {
       return defaultLeft
     })
     while (char()) {
+      call('whitespace')
       const last = cb
       if (consume('(')) {
         const funcArgs = bracket('list', '(', ')')
@@ -306,13 +314,35 @@ const conscript = require('parser-factory')('start', {
     return cb
   },
 
-  list ({consume, char, sub, until}) {
+  parens ({call, char, consume, sub, throughEnd, until}, p, {getVar}) {
+    const first = throughEnd('(', ')', {ignore})
+    call('whitespace')
+    const second = consume('{') ? throughEnd('{', '}', {ignore}) : null
+    if (second === null) return sub('expression', first)
+
+    // We're dealing with a function
+    const varNames = sub('list', first, {evaluate: false})
+      .map(varName => varName.replace(notIdentifierName, ''))
+    return userArgs => (...funcArgs) => {
+      const argVars = new Map()
+      for (let i = 0; i < varNames.length; i++) {
+        const varName = varNames[i]
+        if (!varName) continue
+        argVars.set(varName, i >= funcArgs.length ? null : funcArgs[i])
+      }
+      return sub('expression', second, {
+        getVar: ([vars], varName) => argVars.has(varName) ? argVars.get(varName) : getVar([vars], varName),
+      })(userArgs)
+    }
+  },
+
+  list ({consume, char, sub, until}, p, {evaluate = true} = {}) {
     const arr = []
     while (char()) {
-      arr.push(sub('expression', until(',', {ignore})))
+      arr.push(evaluate ? sub('expression', until(',', {ignore})) : until(','))
       consume(',')
     }
-    return args => arr.map(item => item(args))
+    return evaluate ? args => arr.map(item => item(args)) : arr.map(item => item.trim())
   },
 
   regex ({consume, consumeWhile, char, until}) {
