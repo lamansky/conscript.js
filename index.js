@@ -357,8 +357,8 @@ const conscript = require('parser-factory')('start', {
           if (typeof debugOutput === 'function') debugOutput(syntax, value)
           return value
         }
-      } else if (consume('$')) return call('valueAccess', {getVar, identifier: call('identifier')})
-      else if (consume('[')) return call('valueAccess', {accessProp: accessArrayProp, getVar, value: bracket('list', '[', ']', {ignore})})
+      } else if (consume('$')) return call('valueAccess', {getVar, identifier: call('identifier', {getVar})})
+      else if (consume('[')) return call('valueAccess', {accessProp: accessArrayProp, getVar, value: bracket('list', '[', ']', {ignore}, {getVar})})
       else if (allowRegexLiterals && consume(regexDelimiter)) return call('regex')
       else if (is('"', "'")) return call('valueAccess', {accessProp: accessArrayProp, getVar, value: call('string')})
       else if (is('.')) return call('valueAccess', {getVar})
@@ -372,8 +372,8 @@ const conscript = require('parser-factory')('start', {
     }
   },
 
-  identifier ({bracket, consume, consumeWhile, throughEnd}) {
-    if (consume('(')) return bracket('expression', '(', ')', {ignore})
+  identifier ({bracket, consume, consumeWhile, throughEnd}, p, {getVar}) {
+    if (consume('(')) return bracket('expression', '(', ')', {ignore}, {getVar})
 
     if (consume('{')) {
       const literal = throughEnd('{', '}', {esc})
@@ -420,10 +420,10 @@ const conscript = require('parser-factory')('start', {
       call('whitespace')
       const last = cb
       if (consume('(')) {
-        const funcArgs = bracket('list', '(', ')')
+        const funcArgs = bracket('list', '(', ')', {}, {getVar})
         cb = args => callFunction(identifier, () => last(args), funcArgs(args), safeCall)
       } else if (consume('.')) {
-        const prop = call('identifier')
+        const prop = call('identifier', {getVar})
         cb = args => accessProp(() => last(args), prop(args), safeNav)
       } else {
         break
@@ -454,10 +454,10 @@ const conscript = require('parser-factory')('start', {
     }
   },
 
-  list ({consume, char, sub, until}, p, {evaluate = true} = {}) {
+  list ({consume, char, sub, until}, p, {evaluate = true, getVar}) {
     const arr = []
     while (char()) {
-      arr.push(evaluate ? sub('expression', until(',', {ignore})) : until(','))
+      arr.push(evaluate ? sub('expression', until(',', {ignore}), {getVar}) : until(','))
       consume(',')
     }
     return evaluate ? args => arr.map(item => item(args)) : arr.map(item => item.trim())

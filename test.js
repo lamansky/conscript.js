@@ -26,6 +26,7 @@ describe('conscript()', function () {
     '[1, 2, 3].slice(1, 2) = [2]',
     '[1, 2, 3].slice(1, 2) ~= [2]',
     '[1, 2, 3].some((x){x=2})',
+    '[1, 2, 3].some((x){[x]=[2]})',
     '[1, 2, 3].map((x){x*2}) *= 6',
     '[1, 2, 3].map((x){x*2}).some((x){x=6})',
     '[1, 2, 3, 4].pop(2, (x, y, z){x is array&x.length=2&x=[1,2]&y=3&z=4})',
