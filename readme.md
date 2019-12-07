@@ -82,6 +82,8 @@ conscript('1.1 > 1')() // true
 conscript('-1 < 0')() // true
 ```
 
+Infinity can be represented as either `∞` or `Infinity` (case-insensitive).
+
 #### String Literals
 
 String literals are enclosed with either double or single quotes.

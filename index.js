@@ -251,6 +251,8 @@ const conscript = require('parser-factory')('start', {
       else if (consume('true', {ci: true})) return () => true
       else if (consume('false', {ci: true})) return () => false
       else if (consume('null', {ci: true})) return () => null
+      else if (consume('-∞') || consume('-infinity', {ci: true})) return () => -Infinity
+      else if (consume('∞') || consume('infinity', {ci: true})) return () => Infinity
       else if (number.test(char(3))) return call('number')
       return call('fallback', {getVar})
     }
