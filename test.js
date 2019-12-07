@@ -51,6 +51,30 @@ describe('conscript()', function () {
     '"Test" *= ""',
     '"test" before "ing" = "testing"',
     '"test" then "ing" = "testing"',
+    'true then "testing" = "testing"',
+    '"" then "testing" = ""',
+    '"test" + "ing" = "testing"',
+    '"test" - "e" = "tst"',
+    '"test" - "t" = "es"',
+    '"test"-"t"-"s" = "e"',
+    '[] + "test" = ["test"]',
+    '[1] + [2, 3] = [1, 2, 3]',
+    '[1, 2] + 3 = [1, 2, 3]',
+    '1 + [2, 3] = [1, 2, 3]',
+    '[1, 2, 3] - 3 = [1, 2]',
+    '[1, 2, 3] - [3, 4] = [1, 2]',
+    '"1" + 2 = 3',
+    '1 / 0 = Infinity',
+    '10 / -5 = -2',
+    '1 / -0 = -Infinity',
+    '123 / (1-1) = ∞',
+    '∞ > 0',
+    '0 != -0',
+    '0 = "0"',
+    '0 != "-0"',
+    '-0 = "-0"',
+    '∞ != -∞',
+    '-Infinity < -0',
     '0 then 2 = 0',
     '1 then 2 = 3',
     '10 *= 0',
@@ -90,6 +114,9 @@ describe('conscript()', function () {
     '(1|2)=1',
     'obj.d.key = value',
     '(){obj}().d.key = value',
+    'obj.d is not null',
+    '(obj - d).d is null',
+    '(obj - [c, d]).d is null',
     'obj.c=3&obj.d.hi=null',
     'obj.e is null',
     'obj.prototype is null',
@@ -255,6 +282,13 @@ describe('conscript()', function () {
         },
       })('debug ($x=123) & true=true')({x: 123}), true)
       assert.strictEqual(called, true)
+    }
+  })
+
+  it('should support `safeOp` argument', function () {
+    for (const t of ['!("test" matches 123)', 'true + "" = ""', 'false + "" = ""', 'null + "" = ""', '$obj + "" = ""']) {
+      assert.throws(() => { conscript()(t)() })
+      assert.strictEqual(conscript({safeOp: true})(t)(), true)
     }
   })
 

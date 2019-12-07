@@ -1,11 +1,15 @@
 'use strict'
 
+const arrify = require('arrify')
 const caseInsensitive = require('case-insensitive')
-const equals = require('equals')
+const filterObject = require('filter-obj')
 const isObject = require('is-object')
+const isNonArrayObject = require('isobject')
 const isit = require('isit')
 const {has, get} = require('m-o')
+const objectEquals = require('equals')
 const removePrefix = require('remove-prefix')
+const replaceString = require('replace-string')
 const toNumber = require('2/number')
 const toStr = require('2/string')
 
@@ -25,13 +29,13 @@ const esc = '\\'
 const ignore = [['(', ')'], ['[', ']'], ['{', '}'], ['"', '"', {esc}], ["'", "'", {esc}], ['@', '@', {esc}]]
 const number = /^-?\.?[0-9]/
 
-function getApplyRegexOperator (left, right, shouldMatch, safe) {
+function getApplyRegexOperator (left, right, shouldMatch, safeOp) {
   return args => {
     const l = left(args)
     const r = right(args)
     if (isit.a(RegExp, l) && isit.string(r)) return !l.test(r) === !shouldMatch
     if (isit.a(RegExp, r) && isit.string(l)) return !r.test(l) === !shouldMatch
-    if (safe) return false
+    if (safeOp) return false
     throw new TypeError('To use the `matches` operator, one operand must be a regular expression and the other must be a string')
   }
 }
@@ -44,13 +48,13 @@ function applyBooleanOperator (left, op, right) {
   throw new SyntaxError('Unhandled boolean operator `' + op + '`')
 }
 
-function applyComparisonOperator (left, op, right, safe) {
+function applyComparisonOperator (left, op, right, safeOp) {
   const [absOp, neg] = removePrefix(op, '!')
-  const r = applyAbsoluteComparisonOperator(left, absOp, right, safe)
+  const r = applyAbsoluteComparisonOperator(left, absOp, right, safeOp)
   return neg ? args => !r(args) : r
 }
 
-function applyAbsoluteComparisonOperator (left, op, right, safe) {
+function applyAbsoluteComparisonOperator (left, op, right, safeOp) {
   switch (op) {
     case ' is ': return args => isit(right(args), left(args))
     case ' !is ': case ' is not ': return args => !isit(right(args), left(args))
@@ -58,8 +62,8 @@ function applyAbsoluteComparisonOperator (left, op, right, safe) {
     case ' !in ': case ' not in ': return args => !applyInclusionOperator(left(args), right(args), false)
     case ' ~in ': return args => applyInclusionOperator(left(args), right(args), true)
     case ' !~in ': case ' not ~in ': return args => !applyInclusionOperator(left(args), right(args), true)
-    case ' matches ': return getApplyRegexOperator(left, right, true, safe)
-    case ' !matches ': return getApplyRegexOperator(left, right, false, safe)
+    case ' matches ': return getApplyRegexOperator(left, right, true, safeOp)
+    case ' !matches ': return getApplyRegexOperator(left, right, false, safeOp)
     case '<': return args => left(args) < right(args)
     case '<=': return args => left(args) <= right(args)
     case '=': return args => equals(left(args), right(args))
@@ -77,21 +81,96 @@ function applyAbsoluteComparisonOperator (left, op, right, safe) {
   throw new SyntaxError('Unhandled comparison operator `' + op + '`')
 }
 
-function applyMathOperator (left, op, right) {
+function applyMathOperator (left, op, right, safeOp) {
+  function checkResult (result) {
+    if (Number.isNaN(result)) {
+      if (safeOp) return 0
+      throw new TypeError('Cannot perform ' + op + ' operation on a non-number')
+    }
+    return result
+  }
+
+  function add (l, r) {
+    const la = Array.isArray(l)
+    const ra = Array.isArray(r)
+    const ln = typeof l === 'number'
+    const rn = typeof r === 'number'
+    const ls = typeof l === 'string'
+    const rs = typeof r === 'string'
+
+    if (la) return l.concat(ra ? r : [r])
+    if (ra) return (la ? l : [l]).concat(r)
+    if (isNonArrayObject(l) && isNonArrayObject(r)) return {...l, ...r}
+
+    if (ln & rs) r = toNumber(r)
+    else if (ls & rn) l = toNumber(l)
+    else if (ls & !rs) {
+      if (!rn && !safeOp) throw new TypeError('Cannot concatenate a non-string to a string')
+      r = toStr(r)
+    } else if (!ls & rs) {
+      if (!ln && !safeOp) throw new TypeError('Cannot concatenate a string to a non-string')
+      l = toStr(l)
+    } else if (ln & !rn) {
+      if (!safeOp) throw new TypeError('Cannot add a non-number to a number')
+      r = 0
+    } else if (!ln & rn) {
+      if (!safeOp) throw new TypeError('Cannot add a number to a non-number')
+      l = 0
+    }
+
+    return l + r
+  }
+
   switch (op) {
-    case '+': return args => left(args) + right(args)
-    case '-': return args => left(args) - right(args)
-    case '*': return args => left(args) * right(args)
-    case '/': return args => left(args) / right(args)
-    case '%': return args => left(args) % right(args)
-    case '^': return args => left(args) ** right(args)
+    case '+': return args => checkResult(add(left(args), right(args)))
+    case '-': return args => {
+      let l = left(args)
+      let r = right(args)
+
+      if (Array.isArray(l)) {
+        r = arrify(r)
+        return l.filter(x => !r.includes(x))
+      }
+
+      if (isObject(l)) {
+        if (isObject(r) && !Array.isArray(r)) {
+          const re = Object.entries(r)
+          return filterObject(l, (lk, lv) => !re.some(([rk, rv]) => equals(lk, rk) && equals(lv, rv)))
+        }
+
+        r = arrify(r)
+        return filterObject(l, lk => !r.some(rk => equals(lk, rk)))
+      }
+
+      const ln = typeof l === 'number'
+      const rn = typeof r === 'number'
+      const ls = typeof l === 'string'
+      const rs = typeof r === 'string'
+
+      if (ls && rs) return replaceString(l, r, '')
+
+      if (ln & rs) r = toNumber(r)
+      else if (ls & rn) l = toNumber(l)
+
+      return checkResult(l - r)
+    }
+    case '*': return args => checkResult(left(args) * right(args))
+    case '/': return args => {
+      const l = left(args)
+      const r = right(args)
+      if (Object.is(r, 0)) return Infinity
+      if (Object.is(r, -0)) return -Infinity
+      return checkResult(l / r)
+    }
+    case '%': return args => checkResult(left(args) % right(args))
+    case '^': return args => checkResult(left(args) ** right(args))
     case ' before ': return args => {
-      const rightResult = right(args)
-      return rightResult ? left(args) + rightResult : rightResult
+      const rightResult = toStr(right(args))
+      return rightResult ? toStr(left(args)) + rightResult : rightResult
     }
     case ' then ': return args => {
       const leftResult = left(args)
-      return leftResult ? leftResult + right(args) : leftResult
+      return leftResult ? checkResult(add(leftResult === true ? '' : leftResult, right(args))) : leftResult
     }
   }
   throw new SyntaxError('Unhandled math operator `' + op + '`')
@@ -159,6 +238,13 @@ function accessObjectProp (obj, prop, maybe) {
   return null
 }
 
+function equals (l, r) {
+  l = zeroStringToNumber(l)
+  r = zeroStringToNumber(r)
+  if (l === 0 && r === 0) return Object.is(l, r)
+  return objectEquals(l, r)
+}
+
 function getUserVar ([vars], varName) {
   if (typeof vars === 'function') {
     const value = nullify(vars(varName, notAVar))
@@ -170,7 +256,13 @@ function getUserVar ([vars], varName) {
 }
 
 function nullify (x) {
-  return typeof x === 'undefined' ? null : x
+  return (typeof x === 'undefined' || Number.isNaN(x)) ? null : x
+}
+
+function zeroStringToNumber (x) {
+  if (x === '0') return 0
+  if (x === '-0') return -0
+  return x
 }
 
 const conscript = require('parser-factory')('start', {
@@ -217,7 +309,7 @@ const conscript = require('parser-factory')('start', {
     return call('operator', {operators: mathOps, apply: applyMathOperator, next: 'value', t})
   },
 
-  operator ({char, consume, is, sub, until}, {userArgs: [{safe} = {}]}, {operators, apply, next, t}) {
+  operator ({call, char, consume, is, sub, until}, {userArgs: [{safe, safeOp = safe} = {}]}, {operators, apply, next, t}) {
     const chunk = op => {
       const value = (is('- ') ? '' : consume('-')) + until(...operators, {ignore}).trim()
       if (op && !value) throw new SyntaxError('Expected to find an expression to the right of the ' + op + ' operator.')
@@ -234,7 +326,8 @@ const conscript = require('parser-factory')('start', {
     }
     while (char()) {
       const op = initialWord ? ' ' + consume(...wordOps) : consume(...operators)
-      if (op) left = apply(left, op, chunk(op), safe); else break
+      call('whitespace')
+      if (op) left = apply(left, op, chunk(op), safeOp); else break
       initialWord = false
     }
     return left

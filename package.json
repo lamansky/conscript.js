@@ -33,13 +33,17 @@
   },
   "dependencies": {
     "2": "^3.0.0",
+    "arrify": "^2.0.1",
     "case-insensitive": "^1.0.0",
     "equals": "^1.0.5",
+    "filter-obj": "^2.0.1",
     "is-object": "^1.0.1",
     "isit": "^1.1.0",
+    "isobject": "^4.0.0",
     "m-o": "^2.2.0",
     "parser-factory": "^1.1.0",
-    "remove-prefix": "^2.0.0"
+    "remove-prefix": "^2.0.0",
+    "replace-string": "^3.0.0"
   },
   "devDependencies": {
     "eslint-config-lamansky": "^2.0.0",

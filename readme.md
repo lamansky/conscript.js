@@ -41,9 +41,10 @@ The first function is intended to be called at require-time, e.g. `require('cons
 1. Optional: Object argument: Global options that will apply to all subsequent calls. Possible options:
     * `allowRegexLiterals` (bool): Whether to permit regular expression literals in condition scripts. Defaults to `false`.
     * `debugOutput` (function): A callback that will be invoked whenever the `debug` operator is used. The callback will be given two arguments: the evaluated syntax string, and the value.
-    * `safeCall` (bool): If set to `true`, calling a non-function will fail silently and generate `null`. If set to `false`, an error will be thrown. Defaults to `false`.
-    * `safeNav` (bool): If set to `true`, accessing a property of a non-object will fail silently and generate `null`. If set to `false`, an error will be thrown. Defaults to `false`.
-    * `safe` (bool): A shortcut for setting both `safeCall` and `safeNav` simultaneously.
+    * `safeCall` (bool): If set to `true`, calling a non-function will fail silently and generate `null`. If omitted or set to `false`, an error will be thrown. Defaults to `false`.
+    * `safeNav` (bool): If set to `true`, accessing a property of a non-object will fail silently and generate `null`. If omitted or set to `false`, an error will be thrown. Defaults to `false`.
+    * `safeOp` (bool): If set to `true`, attempting to perform operations on values that are of the wrong type will fail silently. For math operations, the unhandled value will be converted to zero. For regular expression testing operations, `false` will always be returned. If this option is omitted or set to `false`, an error will be thrown in such cases. Defaults to `false`.
+    * `safe` (bool): A shortcut for setting `safeCall`, `safeNav`, and `safeOp` simultaneously.
     * `unknownsAre` (string): A mode for handling unknown identifiers. Possible values are:
         * `strings` (default): Treat unknown identifiers as as strings.
         * `null`: Convert unknown identifiers to `null`.
@@ -309,7 +310,7 @@ Operators are evaluated in the following order of precedence:
 1. Ternary Comparison Operator
 2. Logical Operators
 3. Comparison Operators
-4. Math and String Operators
+4. Math, String, Array, and Object Operators
 5. Prefix Operators
 
 ### Ternary Comparison Operator
@@ -345,8 +346,8 @@ Comparison operators are at precedence level 3.
 | `>=` | Greater than or equal to | `1 >= 1` |
 | `<` | Less than | `2 < 3` |
 | `<=` | Less than or equal to | `2 <= 3` |
-| `<>` | Not equal to | `100 <> 200`<br>`"a" <> "b"` |
-| `!=` | Not equal to | `100 != 200`<br>`"a" != "b"` |
+| `<>` | Not equal to | `100 <> 200`<br>`"a" <> "b"`<br>`0 <> -0` |
+| `!=` | Not equal to | `100 != 200`<br>`"a" != "b"`<br>`0 != -0` |
 
 #### Starts/Ends With
 
@@ -417,8 +418,27 @@ String operators are at precedence level 4.
 | Operator | Meaning | Example |
 | -------- | ------- | ------- |
 | `+` | Concatenate | `"prefix" + $str + "suffix"` |
+| `-` | Remove characters | `"test" - "t" = "es"` |
 | `before` | Prefix the left operand to the right operand if the right is non-empty | `"prefix" before $str` |
 | `then` | Suffix the right operand to the left operand if the left is non-empty | `$str then "suffix"` |
+
+### Array Operators
+
+Array operators are at precedence level 4.
+
+| Operator | Meaning | Example |
+| -------- | ------- | ------- |
+| `+` | Concatenate, push, or unshift | `[1,2]+[3]=[1,2,3]`<br>`[1,2]+3=[1,2,3]`<br>`1+[2,3]=[1,2,3]` |
+| `-` | Remove elements | `[1,2]-[2,3]=[1]`<br>`[1,2,3]-2=[1,3]` |
+
+### Object Operators
+
+Object operators are at precedence level 4.
+
+| Operator | Meaning | Example |
+| -------- | ------- | ------- |
+| `+` | Merge | `$obj1 + $obj2` |
+| `-` | Remove keys or entries | `$obj - "key"`<br>`$obj - ["key1", "key2"]`<br>`$obj1 - $obj2` |
 
 ### Prefix Operators
 
@@ -452,6 +472,11 @@ conscript('"a"|"b"')({}, {defaultLeft: 'X'}) // false
 ## Version Migration Guide
 
 Here are backward-incompatible changes you need to know about.
+
+### 0.2.0 ⇒ Master
+
+* Math operators now behave differently when used on non-number, non-string values. Previous versions of Conscript.js would defer to JavaScript behavior: unrecognized values would get typecast to strings when using the `+` operator, and other operators would often produce `NaN`. Several changes have been made in this regard. First, the concept of `NaN` has been removed from Conscript. If you try to inject `NaN` into a Conscript environment, it will get converted to `null`. Second, attempting to perform math operations on values that cannot be converted to numbers will result in an error being thrown, unless the new `safeOp` option is set (in which case non-numbers will be treated as zero). Attempting to use `+` to add a non-string to a string will either fail or, if `safeOp` is set, will result in the non-string value being converted to an empty string. Third, the `+` operator now acts as a concatenation/push/unshift operator for arrays, and the `-` operator now acts as an element/character removal operator for arrays/strings. Previously the default JavaScript behavior was used in these contexts.
+* Zero and negative zero are no longer considered equal.
 
 ### 0.1.0 ⇒ 0.2.0
 
