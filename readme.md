@@ -291,7 +291,40 @@ conscript('[1, 2, 3].some((x){x=3})')() // true
 conscript('"aaa".every((char){char="a"})')() // true
 ```
 
+### Operator Precedence
+
+Operators are evaluated in the following order of precedence:
+
+1. Ternary Comparison Operator
+2. Logical Operators
+3. Comparison Operators
+4. Math and String Operators
+5. Prefix Operators
+
+### Ternary Comparison Operator
+
+Ternary operators have the highest precedence of all the operators (precedence level 1); that is, they are evaluated first.
+
+```javascript
+const conscript = require('conscript')()
+conscript('enabled ? x=1 : x=2')({x: 1, enabled: true}) // true
+conscript('(x ?: 123) = 123')({x: false}) // true
+```
+
+### Logical Operators
+
+Logical operators are at precedence level 2.
+
+| Operator | Meaning |
+| -------- | ------- |
+| `&` | And |
+| <code>&#124;</code> | Or |
+
+Note that this differs from JavaScript, which uses double ampersand and pipe characters.
+
 ### Comparison Operators
+
+Comparison operators are at precedence level 3.
 
 | Operator | Meaning | Example |
 | -------- | ------- | ------- |
@@ -355,6 +388,8 @@ To the right side of the type operators is a string representing a type check an
 
 ### Mathematical Operators
 
+Math operators are at precedence level 4.
+
 | Operator | Meaning |
 | -------- | ------- |
 | `+` | Add |
@@ -364,7 +399,9 @@ To the right side of the type operators is a string representing a type check an
 | `%` | Modulo |
 | `^` | Exponentiate |
 
-### Concatenation Operators
+### String Operators
+
+String operators are at precedence level 4.
 
 | Operator | Meaning | Example |
 | -------- | ------- | ------- |
@@ -372,28 +409,13 @@ To the right side of the type operators is a string representing a type check an
 | `before` | Prefix the left operand to the right operand if the right is non-empty | `"prefix" before $str` |
 | `then` | Suffix the right operand to the left operand if the left is non-empty | `$str then "suffix"` |
 
-### Logical Operators
+### Prefix Operators
 
-| Operator | Meaning |
-| -------- | ------- |
-| `&` | And |
-| <code>&#124;</code> | Or |
-
-Note that this differs from JavaScript, which uses double ampersand and pipe characters.
-
-### Prefix Operator
+Prefix operators are at precedence level 5; that is, they are evaluated last.
 
 | Operator | Meaning | Example |
 | -------- | ------- | ------- |
 | `!` | Not | `!true = false` |
-
-### Ternary Comparison Operator
-
-```javascript
-const conscript = require('conscript')()
-conscript('enabled ? x=1 : x=2')({x: 1, enabled: true}) // true
-conscript('(x ?: 123) = 123')({x: false}) // true
-```
 
 ### Default Left Operand
 
