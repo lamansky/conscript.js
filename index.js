@@ -232,7 +232,7 @@ const conscript = require('parser-factory')('start', {
     consumeWhile(' \r\n\t')
   },
 
-  value ({bracket, call, char, consume, is, until}, {userArgs: [{allowRegexLiterals} = {}]}, {getVar} = {}) {
+  value ({bracket, call, char, consume, is, until}, {userArgs: [{allowRegexLiterals, debugOutput} = {}]}, {getVar} = {}) {
     while (char()) {
       call('whitespace')
       if (consume('(')) return call('valueAccess', {getVar, value: call('parens', {getVar})})
@@ -242,6 +242,14 @@ const conscript = require('parser-factory')('start', {
           const {defaultLeft} = args[1] || {}
           const value = cb(args)
           return (u(defaultLeft) || typeof value === 'boolean') ? !value : value !== defaultLeft
+        }
+      } else if (consume('debug ')) {
+        const syntax = char(Infinity)
+        const cb = call('value', {getVar})
+        return args => {
+          const value = cb(args)
+          if (typeof debugOutput === 'function') debugOutput(syntax, value)
+          return value
         }
       } else if (consume('$')) return call('valueAccess', {getVar, identifier: call('identifier')})
       else if (consume('[')) return call('valueAccess', {accessProp: accessArrayProp, getVar, value: bracket('list', '[', ']', {ignore})})

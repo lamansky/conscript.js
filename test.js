@@ -140,7 +140,10 @@ describe('conscript()', function () {
         x: 'y',
         y: 'z',
       }
-      assert.strictEqual(conscript({allowRegexLiterals: true})(statement)(vars), true)
+      assert.strictEqual(conscript({
+        allowRegexLiterals: true,
+        debugOutput: (...data) => console.log(...data), // eslint-disable-line no-console
+      })(statement)(vars), true)
     })
   }
 
@@ -219,6 +222,34 @@ describe('conscript()', function () {
 
   it('should ignore things in brackets', function () {
     assert.strictEqual(conscript()('a.{a?b:"["]\\}} is null', {safe: true})(), true)
+  })
+
+  it('should support `debug` operator', function () {
+    {
+      let called
+      assert.strictEqual(conscript({
+        debugOutput (syntax, value) {
+          assert.strictEqual(syntax, '$x')
+          assert.strictEqual(value, 123)
+          called = true
+        },
+      })('debug $x=123')({x: 123}), true)
+      assert.strictEqual(called, true)
+    }
+
+    assert.strictEqual(conscript()('debug $x=123')({x: 123}), true)
+
+    {
+      let called
+      assert.strictEqual(conscript({
+        debugOutput (syntax, value) {
+          assert.strictEqual(syntax, '($x=123)')
+          assert.strictEqual(value, true)
+          called = true
+        },
+      })('debug ($x=123) & true=true')({x: 123}), true)
+      assert.strictEqual(called, true)
+    }
   })
 
   it('should support `unknownsAre` argument', function () {

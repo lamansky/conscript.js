@@ -40,6 +40,7 @@ The first function is intended to be called at require-time, e.g. `require('cons
 
 1. Optional: Object argument: Global options that will apply to all subsequent calls. Possible options:
     * `allowRegexLiterals` (bool): Whether to permit regular expression literals in condition scripts. Defaults to `false`.
+    * `debugOutput` (function): A callback that will be invoked whenever the `debug` operator is used. The callback will be given two arguments: the evaluated syntax string, and the value.
     * `safeCall` (bool): If set to `true`, calling a non-function will fail silently and generate `null`. If set to `false`, an error will be thrown. Defaults to `false`.
     * `safeNav` (bool): If set to `true`, accessing a property of a non-object will fail silently and generate `null`. If set to `false`, an error will be thrown. Defaults to `false`.
     * `safe` (bool): A shortcut for setting both `safeCall` and `safeNav` simultaneously.
@@ -416,6 +417,9 @@ Prefix operators are at precedence level 5; that is, they are evaluated last.
 | Operator | Meaning | Example |
 | -------- | ------- | ------- |
 | `!` | Not | `!true = false` |
+| `debug` | Send value to `debugOutput` | `debug $var` |
+
+Because the `debug` operator is at the lowest precedence, a statement like `debug $x=123` will only output the value of `$x`. If you want `debug` to output the result of the comparison, you would need to use parentheses: `debug ($x=123)`.
 
 ### Default Left Operand
 
