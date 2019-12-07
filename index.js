@@ -29,29 +29,47 @@ const esc = '\\'
 const ignore = [['(', ')'], ['[', ']'], ['{', '}'], ['"', '"', {esc}], ["'", "'", {esc}], ['@', '@', {esc}]]
 const number = /^-?\.?[0-9]/
 
-function getApplyRegexOperator (left, right, shouldMatch, safeOp) {
-  return args => {
-    const l = left(args)
-    const r = right(args)
-    if (isit.a(RegExp, l) && isit.string(r)) return !l.test(r) === !shouldMatch
-    if (isit.a(RegExp, r) && isit.string(l)) return !r.test(l) === !shouldMatch
-    if (safeOp) return false
-    throw new TypeError('To use the `matches` operator, one operand must be a regular expression and the other must be a string')
+function accessArrayProp (x, prop, maybe) {
+  x = x()
+  if (Array.isArray(x) || typeof x === 'string') {
+    switch (prop) {
+      case 'empty': return x.length === 0
+      case 'every': return cb => Array.from(x).every(cb)
+      case 'last': return x[x.length - 1]
+      case 'length': case 'count': return x.length
+      case 'map': return cb => Array.from(x).map(cb)
+      case 'multiple': return x.length > 1
+      case 'pop': return (num, handler) => {
+        num = Math.abs(toNumber(num))
+        const arr = Array.from(x)
+        if (typeof handler !== 'function') return arr.slice(arr.length - num)
+        return handler(arr.slice(0, arr.length - num), ...arr.slice(arr.length - num))
+      }
+      case 'shift': return (num, handler) => {
+        num = Math.abs(toNumber(num))
+        const arr = Array.from(x)
+        if (typeof handler !== 'function') return arr.slice(0, num)
+        return handler(...arr.slice(0, num), arr.slice(num, arr.length))
+      }
+      case 'some': return cb => Array.from(x).some(cb)
+      case 'slice': return (start, stop) => x.slice(start, stop)
+      default: return x[toNumber(prop, {elseThrow: 'Array index `' + prop + '` is not a number'})]
+    }
+  } else if (!maybe) {
+    throw new TypeError('Cannot retrieve property `' + prop + '` from a non-array')
   }
+  return null
 }
 
-function applyBooleanOperator (left, op, right) {
-  switch (op) {
-    case '&': return args => left(args) && right(args)
-    case '|': return args => left(args) || right(args)
+function accessObjectProp (obj, prop, maybe) {
+  obj = obj()
+  if (isObject(obj)) {
+    if (Array.isArray(obj)) return accessArrayProp(() => obj, prop, maybe)
+    return has(obj, prop) ? get(obj, prop) : null
+  } else if (!maybe) {
+    throw new TypeError('Cannot retrieve property `' + prop + '` from a non-object')
   }
-  throw new SyntaxError('Unhandled boolean operator `' + op + '`')
-}
-
-function applyComparisonOperator (left, op, right, safeOp) {
-  const [absOp, neg] = removePrefix(op, '!')
-  const r = applyAbsoluteComparisonOperator(left, absOp, right, safeOp)
-  return neg ? args => !r(args) : r
+  return null
 }
 
 function applyAbsoluteComparisonOperator (left, op, right, safeOp) {
@@ -79,6 +97,29 @@ function applyAbsoluteComparisonOperator (left, op, right, safeOp) {
     case '*~=': return args => applyInclusionOperator(right(args), left(args), true)
   }
   throw new SyntaxError('Unhandled comparison operator `' + op + '`')
+}
+
+function applyBooleanOperator (left, op, right) {
+  switch (op) {
+    case '&': return args => left(args) && right(args)
+    case '|': return args => left(args) || right(args)
+  }
+  throw new SyntaxError('Unhandled boolean operator `' + op + '`')
+}
+
+function applyComparisonOperator (left, op, right, safeOp) {
+  const [absOp, neg] = removePrefix(op, '!')
+  const r = applyAbsoluteComparisonOperator(left, absOp, right, safeOp)
+  return neg ? args => !r(args) : r
+}
+
+function applyInclusionOperator (needle, haystack, ci) {
+  if (!Array.isArray(haystack)) {
+    haystack = toStr(haystack)
+    needle = toStr(needle)
+  }
+  if (ci) haystack = caseInsensitive(haystack)
+  return haystack.includes(needle)
 }
 
 function applyMathOperator (left, op, right, safeOp) {
@@ -176,15 +217,6 @@ function applyMathOperator (left, op, right, safeOp) {
   throw new SyntaxError('Unhandled math operator `' + op + '`')
 }
 
-function applyInclusionOperator (needle, haystack, ci) {
-  if (!Array.isArray(haystack)) {
-    haystack = toStr(haystack)
-    needle = toStr(needle)
-  }
-  if (ci) haystack = caseInsensitive(haystack)
-  return haystack.includes(needle)
-}
-
 function callFunction (identifier, func, funcArgs, maybe) {
   func = func()
   if (typeof func === 'function') {
@@ -195,54 +227,22 @@ function callFunction (identifier, func, funcArgs, maybe) {
   return null
 }
 
-function accessArrayProp (x, prop, maybe) {
-  x = x()
-  if (Array.isArray(x) || typeof x === 'string') {
-    switch (prop) {
-      case 'empty': return x.length === 0
-      case 'every': return cb => Array.from(x).every(cb)
-      case 'last': return x[x.length - 1]
-      case 'length': case 'count': return x.length
-      case 'map': return cb => Array.from(x).map(cb)
-      case 'multiple': return x.length > 1
-      case 'pop': return (num, handler) => {
-        num = Math.abs(toNumber(num))
-        const arr = Array.from(x)
-        if (typeof handler !== 'function') return arr.slice(arr.length - num)
-        return handler(arr.slice(0, arr.length - num), ...arr.slice(arr.length - num))
-      }
-      case 'shift': return (num, handler) => {
-        num = Math.abs(toNumber(num))
-        const arr = Array.from(x)
-        if (typeof handler !== 'function') return arr.slice(0, num)
-        return handler(...arr.slice(0, num), arr.slice(num, arr.length))
-      }
-      case 'some': return cb => Array.from(x).some(cb)
-      case 'slice': return (start, stop) => x.slice(start, stop)
-      default: return x[toNumber(prop, {elseThrow: 'Array index `' + prop + '` is not a number'})]
-    }
-  } else if (!maybe) {
-    throw new TypeError('Cannot retrieve property `' + prop + '` from a non-array')
-  }
-  return null
-}
-
-function accessObjectProp (obj, prop, maybe) {
-  obj = obj()
-  if (isObject(obj)) {
-    if (Array.isArray(obj)) return accessArrayProp(() => obj, prop, maybe)
-    return has(obj, prop) ? get(obj, prop) : null
-  } else if (!maybe) {
-    throw new TypeError('Cannot retrieve property `' + prop + '` from a non-object')
-  }
-  return null
-}
-
 function equals (l, r) {
   l = zeroStringToNumber(l)
   r = zeroStringToNumber(r)
   if (l === 0 && r === 0) return Object.is(l, r)
   return objectEquals(l, r)
+}
+
+function getApplyRegexOperator (left, right, shouldMatch, safeOp) {
+  return args => {
+    const l = left(args)
+    const r = right(args)
+    if (isit.a(RegExp, l) && isit.string(r)) return !l.test(r) === !shouldMatch
+    if (isit.a(RegExp, r) && isit.string(l)) return !r.test(l) === !shouldMatch
+    if (safeOp) return false
+    throw new TypeError('To use the `matches` operator, one operand must be a regular expression and the other must be a string')
+  }
 }
 
 function getUserVar ([vars], varName) {
