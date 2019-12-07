@@ -116,19 +116,31 @@ function callFunction (identifier, func, funcArgs, maybe) {
   return null
 }
 
-function accessArrayProp (arr, prop, maybe) {
-  arr = arr()
-  if (Array.isArray(arr) || typeof arr === 'string') {
+function accessArrayProp (x, prop, maybe) {
+  x = x()
+  if (Array.isArray(x) || typeof x === 'string') {
     switch (prop) {
-      case 'empty': return arr.length === 0
-      case 'every': return cb => Array.from(arr).every(cb)
-      case 'last': return arr[arr.length - 1]
-      case 'length': case 'count': return arr.length
-      case 'map': return cb => Array.from(arr).map(cb)
-      case 'multiple': return arr.length > 1
-      case 'some': return cb => Array.from(arr).some(cb)
-      case 'slice': return (start, stop) => arr.slice(start, stop)
-      default: return arr[toNumber(prop, {elseThrow: 'Array index `' + prop + '` is not a number'})]
+      case 'empty': return x.length === 0
+      case 'every': return cb => Array.from(x).every(cb)
+      case 'last': return x[x.length - 1]
+      case 'length': case 'count': return x.length
+      case 'map': return cb => Array.from(x).map(cb)
+      case 'multiple': return x.length > 1
+      case 'pop': return (num, handler) => {
+        num = Math.abs(toNumber(num))
+        const arr = Array.from(x)
+        if (typeof handler !== 'function') return arr.slice(arr.length - num)
+        return handler(arr.slice(0, arr.length - num), ...arr.slice(arr.length - num))
+      }
+      case 'shift': return (num, handler) => {
+        num = Math.abs(toNumber(num))
+        const arr = Array.from(x)
+        if (typeof handler !== 'function') return arr.slice(0, num)
+        return handler(...arr.slice(0, num), arr.slice(num, arr.length))
+      }
+      case 'some': return cb => Array.from(x).some(cb)
+      case 'slice': return (start, stop) => x.slice(start, stop)
+      default: return x[toNumber(prop, {elseThrow: 'Array index `' + prop + '` is not a number'})]
     }
   } else if (!maybe) {
     throw new TypeError('Cannot retrieve property `' + prop + '` from a non-array')

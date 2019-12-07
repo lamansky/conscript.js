@@ -278,10 +278,12 @@ Arrays and strings also have the following methods:
 
 * `every`
 * `map`
+* `pop`
+* `shift`
 * `slice`
 * `some`
 
-These methods work like their JavaScript equivalents. Strings are treated as if they are arrays of characters.
+With the exception of `pop` and `shift`, these methods work like their JavaScript equivalents. Strings are treated as if they are arrays of characters.
 
 ```javascript
 const conscript = require('conscript')()
@@ -290,6 +292,14 @@ conscript('[1, 2, 3].map((x){x*2}) = [2, 4, 6]')() // true
 conscript('[1, 2, 3].slice(1, 2) = [2]')() // true
 conscript('[1, 2, 3].some((x){x=3})')() // true
 conscript('"aaa".every((char){char="a"})')() // true
+```
+
+Because Conscript is an expression-based language, `pop` and `shift` do not modify the underlying array. Each method accepts two arguments. The first is the number of ending or starting elements to separate. The second is a callback, which will be called with a varying number of arguments. For `pop`, the first argument to the callback will be original array minus the popped elements, with one subsequent argument provided for each popped item. For `shift`, one argument will be provided for each shifted item, followed by an array of the remaining elements as the last argument. Both `pop` and `shift` will return the return value of the callback.
+
+```javascript
+const conscript = require('conscript')()
+conscript('[1, 2, 3, 4].pop(2, (x,y,z){x is array&x.length=2&x=[1,2]&y=3&z=4})')() // true
+conscript('[1, 2, 3, 4].shift(2, (x,y,z){x=1&y=2&z=[3,4]})')() // true
 ```
 
 ### Operator Precedence

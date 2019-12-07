@@ -28,6 +28,11 @@ describe('conscript()', function () {
     '[1, 2, 3].some((x){x=2})',
     '[1, 2, 3].map((x){x*2}) *= 6',
     '[1, 2, 3].map((x){x*2}).some((x){x=6})',
+    '[1, 2, 3, 4].pop(2, (x, y, z){x is array&x.length=2&x=[1,2]&y=3&z=4})',
+    '[1, 2, 3, 4].pop(2)=[3, 4]',
+    '$arr.pop(2, (x, y, z){x=[1,2]&y=3&z=4})&$arr.length=4',
+    '[1, 2, 3, 4].shift(2)=[1, 2]',
+    '$arr.shift(2, (x, y, z){x=1&y=2&z=[3, 4]})&$arr.length=4',
     '[[1], [2], [3]].every((x){x.some((x){x is number})})',
     '["Hello, world"] *= "Hello, world"',
     '["Hello","world"] *~= "HELLO"',
@@ -135,6 +140,7 @@ describe('conscript()', function () {
         under_score: 'yes',
         'has space': 1,
         'has space is number': false,
+        arr: [1, 2, 3, 4],
         obj: {'a b': () => x => x, c: 3, d: new Map([['key', 'value']])},
         bool: false,
         x: 'y',
@@ -261,8 +267,8 @@ describe('conscript()', function () {
 
   it('should throw an error accessing an invalid array property', function () {
     assert.doesNotThrow(() => { conscript()('arr.0')({arr: [1]}) })
-    assert.throws(() => { conscript()('arr.pop is function')({arr: [1]}) })
-    assert.throws(() => { conscript()('[1].pop is function')() })
+    assert.throws(() => { conscript()('arr.concat is function')({arr: [1]}) })
+    assert.throws(() => { conscript()('[1].concat is function')() })
   })
 
   it('should support `defaultLeft` argument', function () {
