@@ -2,6 +2,7 @@
 
 const arrify = require('arrify')
 const caseInsensitive = require('case-insensitive')
+const clone = require('clone')
 const filterObject = require('filter-obj')
 const isObject = require('is-object')
 const isNonArrayObject = require('isobject')
@@ -379,7 +380,7 @@ const conscript = require('parser-factory')('start', {
       return () => literal
     }
 
-    const literal = consumeWhile(identifierName)
+    const literal = consumeWhile(identifierName).trim()
     return () => literal
   },
 
@@ -407,7 +408,9 @@ const conscript = require('parser-factory')('start', {
 
   valueAccess ({bracket, call, char, consume}, {userArgs: [{safe, safeNav = safe, safeCall = safe} = {}]}, {accessProp = accessObjectProp, getVar, identifier, value} = {}) {
     let cb = value || (identifier ? args => {
-      const val = getVar(args, identifier(args))
+      const varName = identifier(args)
+      if (varName === '') return isNonArrayObject(args[0]) ? clone(args[0]) : {}
+      const val = getVar(args, varName)
       return val === notAVar ? null : val
     } : ([, {defaultLeft} = {}]) => {
       if (u(defaultLeft)) throw new SyntaxError('Property access chains can only begin with a dot (.) if defaultLeft is specified')

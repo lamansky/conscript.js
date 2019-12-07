@@ -133,6 +133,10 @@ describe('conscript()', function () {
     '$("v" + "ar") = 123',
     '$(v + ar) = 123',
     '$(x)="z"',
+    '$ is object',
+    '$.obj is object',
+    '$ . obj is object',
+    '($-"obj").obj is null',
     '(var ?: null) = var',
     '(null ?: var) = var',
     'first word != first',
@@ -312,6 +316,7 @@ describe('conscript()', function () {
     assert.strictEqual(conscript()('>2 & +1=4 & -  1 = 2')({}, {defaultLeft: 3}), true)
     assert.strictEqual(conscript()('>2 & +1=4 & -  1 = 2')({}, {defaultLeft: 3}), true)
     assert.strictEqual(conscript()('.key="value"')({}, {defaultLeft: {key: 'value'}}), true)
+    assert.strictEqual(conscript()('. key = "value"')({}, {defaultLeft: {key: 'value'}}), true)
     assert.strictEqual(conscript()('(?:2)=2')({}, {defaultLeft: false}), true)
     assert.strictEqual(conscript()('is string')({}, {defaultLeft: 'test'}), true)
     assert.strictEqual(conscript({allowRegexLiterals: true})('matches @^t@')({}, {defaultLeft: 'test'}), true)
