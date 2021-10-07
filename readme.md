@@ -480,7 +480,7 @@ conscript('"a"|"b"')({}, {defaultLeft: 'X'}) // false
 
 Here are backward-incompatible changes you need to know about.
 
-### 0.2.0 ⇒ Master
+### 0.2.0 ⇒ 0.3.0
 
 * Math operators now behave differently when used on non-number, non-string values. Previous versions of Conscript.js would defer to JavaScript behavior: unrecognized values would get typecast to strings when using the `+` operator, and other operators would often produce `NaN`. Several changes have been made in this regard. First, the concept of `NaN` has been removed from Conscript. If you try to inject `NaN` into a Conscript environment, it will get converted to `null`. Second, attempting to perform math operations on values that cannot be converted to numbers will result in an error being thrown, unless the new `safeOp` option is set (in which case non-numbers will be treated as zero). Attempting to use `+` to add a non-string to a string will either fail or, if `safeOp` is set, will result in the non-string value being converted to an empty string. Third, the `+` operator now acts as a concatenation/push/unshift operator for arrays, and the `-` operator now acts as an element/character removal operator for arrays/strings. Previously the default JavaScript behavior was used in these contexts.
 * Zero and negative zero are no longer considered equal.
